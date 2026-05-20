@@ -1,0 +1,47 @@
+name: NEXA Quality Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  quality-checks:
+    name: Code Quality & Build Checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install Base Dependencies
+        run: npm ci
+
+      - name: Syntax Lint Check
+        run: npm run lint
+
+      - name: Build Standalone Production Target
+        env:
+          NODE_ENV: production
+        run: npm run build
+
+  deploy-preview:
+    name: Optional Vercel Deploy Preview
+    needs: quality-checks
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Echo Deploy Preview Guidelines
+        run: |
+          echo "Vercel integration will deploy this branch automatically."
+          echo "Please ensure the preview URL is allowed in your OAuth configurations if testing Github logs!"

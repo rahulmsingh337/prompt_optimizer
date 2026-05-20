@@ -1,0 +1,65 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Reusable core helpers described in security skills
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Optimization entity field constraints
+    function isValidOptimization(data) {
+      return data.userId is string 
+        && data.roughRequest is string && data.roughRequest.size() <= 10000
+        && data.optimizedPrompt is string && data.optimizedPrompt.size() <= 20000
+        && (data.proTip == null || (data.proTip is string && data.proTip.size() <= 5000))
+        && (data.domain == null || (data.domain is string && data.domain.size() <= 200))
+        && (data.targetAI == null || (data.targetAI is string && data.targetAI.size() <= 200))
+        && data.timestamp is string;
+    }
+
+    // Feedback entity field constraints
+    function isValidFeedback(data) {
+      return data.rating in ['up', 'down']
+        && (data.comment == null || (data.comment is string && data.comment.size() <= 1000))
+        && (data.domain == null || (data.domain is string && data.domain.size() <= 200))
+        && (data.targetAI == null || (data.targetAI is string && data.targetAI.size() <= 200))
+        && data.timestamp is string;
+    }
+
+    // User prompt optimization subcollection match
+    match /users/{userId}/optimizations/{optimizationId} {
+      allow list, get: if isOwner(userId);
+      allow create: if isOwner(userId) 
+                    && isValidId(optimizationId) 
+                    && isValidOptimization(request.resource.data)
+                    && request.resource.data.userId == request.auth.uid;
+      allow update: if isOwner(userId) 
+                    && isValidId(optimizationId) 
+                    && isValidOptimization(request.resource.data)
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.roughRequest == resource.data.roughRequest; // Keep immutability
+      allow delete: if isOwner(userId);
+    }
+
+    // Telemetry and anonymous rating collection match
+    match /feedbacks/{feedbackId} {
+      allow create: if isValidId(feedbackId) && isValidFeedback(request.resource.data);
+      allow get: if false; // write-only feedback collection
+      allow list: if false;
+      allow update, delete: if false;
+    }
+  }
+}
