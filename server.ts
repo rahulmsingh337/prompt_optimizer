@@ -148,10 +148,10 @@ Your primary directive is to transform crude, ambiguous, chaotic, or plain user 
 
 You strictly apply the 4-D Prompt Engineering Methodology with an ADVANCED DIAGNOSTICS scope:
 1. DECONSTRUCT: Unpack objectives, target parameters, vocabulary limitations, and output contexts.
-2. DIAGNOSE (Advanced Scope): Deeply audit the rough instruction to expose, neutralize, and resolve key vulnerabilities:
+2. DIAGNOSE (Advanced Scope): Deeply audit the rough instruction to actively identify, expose, neutralize, and resolve key security edge cases and implicit vulnerabilities:
    - Security Edge-Cases (Vulnerability Risks):
-     * For Code Generation Prompts: Actively audit for missing input validation patterns, potential injection vulnerabilities (e.g., SQL injection, Command injection, Cross-Site Scripting [XSS], unauthenticated endpoints, arbitrary script run environments), or unhandled/swallowed error states and lack of defensive fallback guards.
-     * For Data-Related & API Prompts: Deeply check for potential Data Leakage Risks, including credential exposures, credentials-in-transit, lack of authorization rules, unmasked Personally Identifiable Information (PII) data leakages, missing access controls, or insecure session cache exposures.
+     * For Code Generation Prompts: Actively audit for missing input validation, potential injection vulnerabilities (e.g., SQL injection, Command injection, Cross-Site Scripting [XSS]), unhandled error states, and insecure endpoint configurations.
+     * For Data-Related & API Prompts: Actively audit for potential data leakage risks like credential exposures, unmasked Personally Identifiable Information (PII) handling, credentials-in-transit, lack of access controls, or insecure session cache exposures.
    - Implicit Constraints (Implicit Needs): Reveal hidden dependencies. For technical tasks, notice omissions in retry/backoff constraints, connection pools, or query limit boundaries. For marketing/creative prompts, note missing details about customer demographics, targeted distribution channels, length limits, or anti-spam rules.
    - Semantic Ambiguities (Vague Directives): Detect passive voice expressions (e.g., "results are written," "it should be fast," "make it catchy") and rewrite into clear, active-voice, imperative directives (e.g., "Enforce strict runtime parsing checks," "Engage with conversion psych metrics immediately," "Verify incoming buffer length boundaries").
 3. DEVELOP: Employ domain-specific strategic templates and prompt methodologies to structure the outcome.
@@ -161,10 +161,10 @@ You strictly apply the 4-D Prompt Engineering Methodology with an ADVANCED DIAGN
 OUTPUT REQUIREMENTS FOR ADVANCED DIAGNOSIS DIAGRAMMING:
 To display the deep value of the NEXA prompt engine, you MUST construct the following fields:
 - "improvements": Must list 3-5 distinct, targeted improvements identifying precisely what was diagnosed.
-  - For coding prompts: You MUST include at least one diagnostic starting with "DIAGNOSTIC (Security/Edge-case)" focusing directly on input validation, injection vulnerability guards, or unhandled/swallowed error states, and one starting with "DIAGNOSTIC (Implicit Constraint)" focusing on resilient/robust patterns or connection pooling limits.
-  - For data-related/API prompts: You MUST include at least one diagnostic starting with "DIAGNOSTIC (Data-Leakage-Risk)" focusing on credential masking, PII protection, or unauthorized transport/access controls.
+  - For code/code-generation prompts: You MUST include at least one diagnostic starting with "DIAGNOSTIC (Security/Edge-case)" focusing directly on missing input validation, potential injection vulnerabilities (such as SQL injection, Command injection, XSS), unhandled error states, or insecure endpoint configurations. Also include at least one starting with "DIAGNOSTIC (Implicit Constraint)" focusing on resilient/robust patterns or connection pooling limits.
+  - For data-related/API prompts: You MUST include at least one diagnostic starting with "DIAGNOSTIC (Data-Leakage-Risk)" focusing directly on data leakage risks like credential exposures or PII handling, credential masking, or unauthorized transport/access controls.
   - For copy/marketing: You MUST include at least one starting with "DIAGNOSTIC (Semantic Ambiguity)" focusing on rewriting passive descriptions or non-committal voice into persuasive action hooks, and one starting with "DIAGNOSTIC (Implicit Constraint)" targeting target demographic and conversion guidelines.
-- "techniquesApplied": Detail the exact prompt-engineering names of the mitigations deployed (e.g., "Defensive Input Validation Guard", "Anti-SQL-Injection Parameterization Spec", "PII-Masking & Tokenization Directives", "Anti-Data-Leakage Isolation Boundaries", "Linguistic Active-Voice Imperatives", "XML-Tagged Environment Contextualization", "AIDA Conversion Framework Routing", "Role-Based Persona Synthesizer").
+- "techniquesApplied": Detail the exact prompt-engineering names of the mitigations deployed. Ensure that all findings and mitigations related to the identified security edge cases (e.g. input validation, injection guards, error state handling, insecure endpoints, credential exposure, or PII protections) are explicitly reflected here using titles such as "Defensive Input Validation Guard", "Anti-SQL-Injection Parameterization Spec", "Cross-Site-Scripting (XSS) Prevention Strategy", "Anti-Command-Injection Mitigation", "Secure Local Cache isolation", "Insecure Endpoint Hardening Filter", "Unhandled Error State Handler", "PII-Masking & Tokenization Directives", "Anti-Data-Leakage Isolation Boundaries".
 --------------------------------------------------------------------------------
 DOMAIN-SPECIFIC OPTIMIZATION STRATEGIES & TEMPLATES:
 Depending on the user's selected domain, you must leverage these custom templates and system philosophies:
@@ -204,6 +204,96 @@ JSON Response Schema:
     { "id": "q1", "question": "Question text?", "defaultAnswer": "Default suggested answer" }
   ] | null
 }`;
+
+// ----------------------------------------------------
+// RESILIENT PARSING AND DETAILED SERVER-SIDE ERROR LOGGER
+// ----------------------------------------------------
+
+/**
+ * Clean up minor syntax anomalies in raw JSON responses from the model and parse them.
+ * This filters standard markdown code fences, trailing commas, and boundary issues safely.
+ */
+export function resilientJsonParse(rawText: string): any {
+  let cleaned = rawText.trim();
+
+  // 1. Remove standard or nested markdown code blocks (e.g. ```json ... ```)
+  if (cleaned.startsWith("```")) {
+    cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
+  }
+  cleaned = cleaned.trim();
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (firstError: any) {
+    console.warn(`[NEXA RECOVERY ENGINE] Initial JSON parse failed. Attempting structural recovery... Reason: ${firstError.message}`);
+
+    // Clean trailing commas in objects/arrays which are common in LLM JSON generation
+    let recovered = cleaned.replace(/,\s*([}\]])/g, "$1");
+
+    try {
+      return JSON.parse(recovered);
+    } catch (secondError) {
+      // Find the first outer '{' and the last outer '}'
+      const startIdx = cleaned.indexOf("{");
+      const endIdx = cleaned.lastIndexOf("}");
+      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        const sliced = cleaned.substring(startIdx, endIdx + 1);
+        try {
+          return JSON.parse(sliced);
+        } catch (sliceError) {
+          throw firstError; // Throw the first descriptive parsing exception to preserve the root context
+        }
+      }
+      throw firstError;
+    }
+  }
+}
+
+/**
+ * Format and write rich error logs on the server console for rapid debugging.
+ * Masks credentials while preserving payload context, status codes, and model state.
+ */
+export function logServerError(context: string, error: any, requestPayload: any): void {
+  const timestamp = new Date().toISOString();
+  console.error("\n======================================================================");
+  console.error(`[NEXA ERROR LOG] [${timestamp}]`);
+  console.error(`CONTEXT: ${context}`);
+  console.error("----------------------------------------------------------------------");
+  console.error("Error Details:", error);
+  console.error("Type/Name:", error?.name || "GenericError");
+  console.error("Message:", error?.message || "No error message provided");
+  if (error?.status || error?.statusCode) {
+    console.error(`HTTP/RPC Status: ${error?.status || error?.statusCode}`);
+  }
+  if (error?.errorDetails) {
+    console.error("Specific Details:", JSON.stringify(error.errorDetails, null, 2));
+  }
+  if (error?.stack) {
+    console.error("Stack Trace:\n", error.stack);
+  }
+  console.error("----------------------------------------------------------------------");
+  console.error("Sanitized Client Parameters:");
+  const sanitized = { ...requestPayload };
+  if (sanitized.roughRequest) {
+    sanitized.roughRequest = sanitized.roughRequest.length > 500
+      ? sanitized.roughRequest.substring(0, 500) + "... [Truncated for readability]"
+      : sanitized.roughRequest;
+  }
+  console.error(JSON.stringify(sanitized, null, 2));
+
+  // Diagnostic checklist for API Key
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) {
+    console.error("GEMINI_API_KEY Check: MISSING / NOT DEFINED IN ENVIRONMENT");
+  } else {
+    const masked = key.startsWith("AIzaSy")
+      ? `AIzaSy...${key.substring(key.length - 4)}`
+      : `INVALID_PREFIX_STRUCTURE(${key.substring(0, Math.min(6, key.length))}...)`;
+    console.error(`GEMINI_API_KEY Check: PRESENT (${masked}), Length: ${key.length} characters`);
+  }
+  console.error("======================================================================\n");
+}
+
 
 // AI Optimize Entrypoint (Evaluates mode and decides whether to produce Questions or generate Prompt)
 app.post("/api/optimize", async (req: any, res: any) => {
@@ -247,37 +337,24 @@ If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with s
 
     const textOutput = result.text;
     if (!textOutput || !textOutput.trim()) {
-      console.error("[NEXA DEBUG - API EMPTY] The model content output returned blank or was safety blocked.");
       throw new Error("EMPTY_GEMINI_OUTPUT: The generative model completed successfully but returned blank content. This may indicate a temporary backend glitch or safety-driven truncation.");
     }
 
-    // Scrub out potential Markdown code fence packaging
-    let cleanedOutput = textOutput.trim();
-    if (cleanedOutput.startsWith("```")) {
-      cleanedOutput = cleanedOutput.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-    }
-    cleanedOutput = cleanedOutput.trim();
-
     try {
-      const parsedData = JSON.parse(cleanedOutput);
+      const parsedData = resilientJsonParse(textOutput);
       res.json(parsedData);
     } catch (parseError: any) {
-      console.error("[NEXA DEBUG - JSON PARSE FAIL] Failed to convert Gemini payload to valid JSON.");
-      console.error("[NEXA DEBUG - Raw Text output captured]:", textOutput);
-      console.error("[NEXA DEBUG - Error message]:", parseError?.message);
-
+      logServerError("NEXA_OPTIMIZE_JSON_PARSE", parseError, { targetAI, modePreference, domain, roughRequest });
       res.status(500).json({ 
         error: "parse_failed", 
-        message: `Structured output synthesis failed to parse. Cleaned payload length: ${cleanedOutput.length} characters. Reason: ${parseError?.message || "Invalid JSON schema structure"}. Please submit a slightly revised prompt.`,
+        message: `Structured output synthesis failed to parse. Reason: ${parseError?.message || "Invalid JSON schema structure"}. Please submit a slightly revised prompt.`,
         rawText: textOutput,
         parseError: parseError?.message
       });
     }
 
   } catch (err: any) {
-    console.error("[NEXA DEBUG - EXCEPTION ACCUMULATOR] Prompt optimization route failed executing.");
-    console.error("[NEXA DEBUG - Context Params]:", { targetAI, modePreference, domain, roughRequestLength: roughRequest?.length });
-    console.error("[NEXA DEBUG - Stack/Exception Details]:", err);
+    logServerError("NEXA_OPTIMIZE_ROUTE", err, { targetAI, modePreference, domain, roughRequest });
 
     let errorType = "api_failed";
     let friendlyMessage = "Failed to run NEXA prompt optimization. Please test again.";
@@ -349,36 +426,24 @@ Please synthesize the absolute ultimate tailored optimized prompt incorporating 
 
     const textOutput = result.text;
     if (!textOutput || !textOutput.trim()) {
-      console.error("[NEXA DEBUG - API EMPTY] Answers compilation generated blank response or was blocked.");
       throw new Error("EMPTY_GEMINI_OUTPUT: Answers synthesize generated blank response. This may indicate safety blocks or connection resets.");
     }
 
-    // Scrub out potential Markdown code fence packaging
-    let cleanedOutput = textOutput.trim();
-    if (cleanedOutput.startsWith("```")) {
-      cleanedOutput = cleanedOutput.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-    }
-    cleanedOutput = cleanedOutput.trim();
-
     try {
-      const parsedData = JSON.parse(cleanedOutput);
+      const parsedData = resilientJsonParse(textOutput);
       res.json(parsedData);
     } catch (parseError: any) {
-      console.error("[NEXA DEBUG - JSON PARSE FAIL] Answers merge parse error raw text:", textOutput);
-      console.error("[NEXA DEBUG - Parse error details]:", parseError?.message);
-
+      logServerError("NEXA_ANSWERS_JSON_PARSE", parseError, { targetAI, domain, roughRequest, answers });
       res.status(500).json({ 
         error: "parse_failed", 
-        message: `Structured output merge synthesis failed to parse. Cleaned payload length: ${cleanedOutput.length} characters. Reason: ${parseError?.message || "Invalid JSON schema"}. Please retry submitting your answers.`,
+        message: `Structured output merge synthesis failed to parse. Reason: ${parseError?.message || "Invalid JSON schema"}. Please retry submitting your answers.`,
         rawText: textOutput,
         parseError: parseError?.message
       });
     }
 
   } catch (err: any) {
-    console.error("[NEXA DEBUG - EXCEPTION ACCUMULATOR] Answers synthesis error details captured.");
-    console.error("[NEXA DEBUG - Context Params]:", { targetAI, domain, roughRequestLength: roughRequest?.length });
-    console.error("[NEXA DEBUG - Stack/Exception Details]:", err);
+    logServerError("NEXA_ANSWERS_ROUTE", err, { targetAI, domain, roughRequest, answers });
 
     let errorType = "api_failed";
     let friendlyMessage = "Failed to synthesize answered prompt.";

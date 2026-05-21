@@ -27,12 +27,28 @@
         "timestamp": { "type": "string", "format": "date-time" }
       },
       "required": ["rating", "timestamp"]
+    },
+    "Preferences": {
+      "title": "User Preferences",
+      "description": "User specific app configuration preferences",
+      "type": "object",
+      "properties": {
+        "targetAI": { "type": "string", "description": "The default target platform" },
+        "modePreference": { "type": "string", "description": "The default style mode" },
+        "domain": { "type": "string", "description": "The default domain focus" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["targetAI", "modePreference", "domain", "updatedAt"]
     }
   },
   "firestore": {
     "/users/{userId}/optimizations/{optimizationId}": {
       "schema": "Optimization",
       "description": "Google authenticated user prompt optimization history"
+    },
+    "/users/{userId}/preferences/{preferenceId}": {
+      "schema": "Preferences",
+      "description": "User account customized configuration preferences"
     },
     "/feedbacks/{feedbackId}": {
       "schema": "Feedback",

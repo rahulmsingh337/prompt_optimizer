@@ -19,10 +19,25 @@ import {
   ThumbsUp,
   ThumbsDown,
   Send,
-  Network
+  Network,
+  Bookmark,
+  History,
+  Save,
+  Trash2
 } from "lucide-react";
-import { User as UserType, OptimizedResponse, QueryState } from "../types";
+import { User as UserType, OptimizedResponse, QueryState, HistoryItem, UserPreferences } from "../types";
 import SwimlaneWorkflow from "./SwimlaneWorkflow";
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  deleteDoc, 
+  query, 
+  orderBy, 
+  onSnapshot 
+} from "firebase/firestore";
+import { db, handleFirestoreError, OperationType } from "../firebase";
 
 interface OptimizerAppProps {
   user: UserType;
@@ -59,6 +74,118 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
   const [communityFeedbacks, setCommunityFeedbacks] = useState<any[]>([]);
 
   // Fetch anonymized feedback entries from active storage
+  const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState<boolean>(false);
+  const [preferences, setPreferences] = useState<UserPreferences | null>(null);
+  const [isSavingPrefs, setIsSavingPrefs] = useState<boolean>(false);
+  const [prefSaveSuccess, setPrefSaveSuccess] = useState<boolean>(false);
+  const [searchHistoryQuery, setSearchHistoryQuery] = useState<string>("");
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
+  // Load preferences across sessions
+  const loadUserPreferences = async () => {
+    try {
+      const prefDocRef = doc(db, "users", String(user.id), "preferences", "settings");
+      const docSnap = await getDoc(prefDocRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as UserPreferences;
+        setPreferences(data);
+        if (data.targetAI) setTargetAI(data.targetAI);
+        if (data.modePreference) setModePreference(data.modePreference);
+        if (data.domain) setDomain(data.domain);
+      }
+    } catch (e) {
+      console.error("Failed to load user preferences: ", e);
+    }
+  };
+
+  // Save current options as default session preferences
+  const saveUserPreferences = async () => {
+    setIsSavingPrefs(true);
+    setPrefSaveSuccess(false);
+    const prefPayload: UserPreferences = {
+      targetAI,
+      modePreference,
+      domain,
+      updatedAt: new Date().toISOString()
+    };
+    try {
+      const prefDocRef = doc(db, "users", String(user.id), "preferences", "settings");
+      await setDoc(prefDocRef, prefPayload);
+      setPreferences(prefPayload);
+      setPrefSaveSuccess(true);
+      setTimeout(() => setPrefSaveSuccess(false), 3000);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, `users/${user.id}/preferences/settings`);
+    } finally {
+      setIsSavingPrefs(false);
+    }
+  };
+
+  // Synchronously write completed optimizations to permanent history
+  const saveToHistory = async (rough: string, responseData: OptimizedResponse) => {
+    const docId = `opt_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
+    const historyPayload = {
+      userId: String(user.id),
+      roughRequest: rough,
+      optimizedPrompt: responseData.optimizedPrompt || "",
+      proTip: responseData.proTip || null,
+      domain: domain || "General",
+      targetAI: targetAI || "ChatGPT",
+      timestamp: new Date().toISOString(),
+      modeUsed: responseData.modeUsed || "BASIC",
+      improvements: responseData.improvements || null,
+      techniquesApplied: responseData.techniquesApplied || null
+    };
+
+    try {
+      const optDocRef = doc(db, "users", String(user.id), "optimizations", docId);
+      await setDoc(optDocRef, historyPayload);
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, `users/${user.id}/optimizations/${docId}`);
+    }
+  };
+
+  // Sync with Firestore developments and read user defaults on mount
+  useEffect(() => {
+    const q = query(
+      collection(db, "users", String(user.id), "optimizations"),
+      orderBy("timestamp", "desc")
+    );
+
+    setIsLoadingHistory(true);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const items: HistoryItem[] = [];
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        items.push({
+          id: doc.id,
+          userId: data.userId,
+          roughRequest: data.roughRequest,
+          optimizedPrompt: data.optimizedPrompt,
+          proTip: data.proTip,
+          domain: data.domain,
+          targetAI: data.targetAI,
+          timestamp: data.timestamp,
+          modeUsed: data.modeUsed,
+          improvements: data.improvements,
+          techniquesApplied: data.techniquesApplied
+        });
+      });
+      setHistoryItems(items);
+      setIsLoadingHistory(false);
+      setHistoryError(null);
+    }, (error) => {
+      setIsLoadingHistory(false);
+      setHistoryError("Unable to synchronize with Firestore.");
+      handleFirestoreError(error, OperationType.LIST, `users/${user.id}/optimizations`);
+    });
+
+    loadUserPreferences();
+
+    return () => unsubscribe();
+  }, [user.id]);
+
   const fetchFeedbacks = async () => {
     try {
       const res = await fetch("/api/feedback");
@@ -179,6 +306,9 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
 
       const data = await res.json();
       setResponse(data);
+      if (data && data.optimizedPrompt) {
+        saveToHistory(roughRequest, data);
+      }
     } catch (err: any) {
       setErrorMessage(err.message || "AI Server failed to respond.");
     } finally {
@@ -218,6 +348,9 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
 
       const data = await res.json();
       setResponse(data);
+      if (data && data.optimizedPrompt) {
+        saveToHistory(roughRequest, data);
+      }
     } catch (err: any) {
       setErrorMessage(err.message || "Answer synthesis synthesis failed.");
     } finally {
@@ -468,6 +601,167 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
               </button>
             </div>
 
+          </div>
+
+          {/* USER ACCOUNT VAULT: PREFERENCES */}
+          <div className="p-6 rounded-2xl bg-slate-950/45 border border-slate-900/60 flex flex-col gap-4 backdrop-blur-lg shadow-xl shadow-slate-950/10">
+            <div className="flex items-center justify-between border-b border-slate-900 pb-3">
+              <div className="flex items-center gap-2">
+                <Bookmark className="w-4 h-4 text-indigo-400" />
+                <h2 className="font-display font-bold text-xs text-slate-200">Session Defaults</h2>
+              </div>
+              <span className="text-[10px] font-mono text-slate-500 uppercase font-semibold">Preferences</span>
+            </div>
+
+            <p className="text-[11px] text-slate-400 leading-normal">
+              Lock your preferred parameters (Target Platform, Mode Style, and Domain) securely across sessions.
+            </p>
+
+            <div className="flex items-center justify-between bg-[#0a0f1d]/50 p-3 rounded-xl border border-slate-900/40">
+              <div className="text-left">
+                <span className="text-[9px] font-mono text-slate-500 block uppercase font-bold">LOCKED DEFAULTS</span>
+                <span className="text-[11px] font-semibold text-slate-300">
+                  {preferences ? `${preferences.targetAI} • ${preferences.modePreference} • ${preferences.domain}` : "No defaults locked"}
+                </span>
+              </div>
+              
+              <button
+                type="button"
+                onClick={saveUserPreferences}
+                disabled={isSavingPrefs}
+                className="px-2.5 py-1.5 bg-indigo-550/10 hover:bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer select-none disabled:opacity-50"
+              >
+                {isSavingPrefs ? (
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                ) : prefSaveSuccess ? (
+                  <>
+                    <Check className="w-3 h-3 text-emerald-400" /> Locked!
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-3 h-3" /> Lock Current
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* HISTORICAL PROMPT RECORD VAULT */}
+          <div className="p-6 rounded-2xl bg-slate-950/45 border border-slate-900/60 flex flex-col gap-4 backdrop-blur-lg shadow-xl shadow-slate-950/10">
+            <div className="flex items-center justify-between border-b border-slate-900 pb-3">
+              <div className="flex items-center gap-2">
+                <History className="w-4 h-4 text-sky-450" />
+                <h2 className="font-display font-bold text-xs text-slate-200 font-semibold font-display">Prompt History</h2>
+              </div>
+              <span className="text-[9px] font-mono bg-sky-500/10 text-sky-400 px-1.5 py-0.5 rounded uppercase font-bold">
+                {historyItems.length} Saved
+              </span>
+            </div>
+
+            {/* History Search filter */}
+            {historyItems.length > 0 && (
+              <input
+                type="text"
+                placeholder="Search history records..."
+                value={searchHistoryQuery}
+                onChange={(e) => setSearchHistoryQuery(e.target.value)}
+                className="w-full bg-[#0c1222]/35 border border-slate-850/60 text-xs text-slate-200 rounded-lg p-2.5 focus:border-sky-500 focus:outline-none font-sans backdrop-blur-sm placeholder-slate-600"
+              />
+            )}
+
+            {historyError ? (
+              <div className="p-3 rounded-lg bg-red-950/30 border border-red-500/20 text-xs text-red-400">
+                {historyError}
+              </div>
+            ) : isLoadingHistory ? (
+              <div className="text-center py-6 text-slate-500 font-mono text-xs flex items-center justify-center gap-2">
+                <RefreshCw className="w-3 h-3 animate-spin text-sky-400" /> Syncing history...
+              </div>
+            ) : historyItems.length === 0 ? (
+              <div className="text-center py-8 text-slate-500 font-sans text-xs border border-dashed border-slate-900/40 rounded-xl p-4 leading-normal">
+                Optimize prompts to save secure session records here.
+              </div>
+            ) : (
+              <div className="space-y-2.5 max-h-80 overflow-y-auto pr-1">
+                {historyItems
+                  .filter(item => {
+                    const term = searchHistoryQuery.trim().toLowerCase();
+                    if (!term) return true;
+                    return (
+                      item.roughRequest.toLowerCase().includes(term) ||
+                      item.optimizedPrompt.toLowerCase().includes(term) ||
+                      (item.domain || "").toLowerCase().includes(term) ||
+                      (item.targetAI || "").toLowerCase().includes(term)
+                    );
+                  })
+                  .slice(0, 10)
+                  .map((item) => (
+                    <div 
+                      key={item.id} 
+                      className="p-3 rounded-xl bg-slate-950/30 hover:bg-[#0c1222]/50 border border-slate-900/50 hover:border-slate-800 transition-all flex flex-col gap-1.5 relative group"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[9px] font-mono bg-indigo-500/15 text-indigo-400 px-1.5 py-0.5 rounded font-bold">
+                            {item.targetAI || "Other"}
+                          </span>
+                          <span className="text-[9px] font-mono text-slate-500">•</span>
+                          <span className="text-[9px] font-mono text-slate-400 font-bold">
+                            {item.domain || "General"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setTargetAI(item.targetAI || "ChatGPT");
+                              setDomain(item.domain || "General");
+                              setRoughRequest(item.roughRequest);
+                              setResponse({
+                                modeUsed: item.modeUsed || "BASIC",
+                                optimizedPrompt: item.optimizedPrompt,
+                                proTip: item.proTip || null,
+                                improvements: item.improvements || null,
+                                techniquesApplied: item.techniquesApplied || null
+                              });
+                              setErrorMessage(null);
+                            }}
+                            className="px-2 py-0.5 rounded bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/20 text-sky-400 text-[9px] font-mono transition-colors cursor-pointer"
+                            title="Load prompt state"
+                          >
+                            Load
+                          </button>
+                          <button
+                            type="button"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              if (window.confirm("Permanently delete this prompt record?")) {
+                                try {
+                                  await deleteDoc(doc(db, "users", String(user.id), "optimizations", item.id));
+                                } catch (err) {
+                                  handleFirestoreError(err, OperationType.DELETE, `users/${user.id}/optimizations/${item.id}`);
+                                }
+                              }
+                            }}
+                            className="p-1 rounded bg-red-500/10 hover:bg-red-500/25 text-red-400 hover:text-red-300 transition-colors cursor-pointer border border-red-500/10"
+                            title="Delete record"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      </div>
+
+                      <p className="text-[11px] text-slate-350 line-clamp-2 leading-relaxed font-sans">
+                        {item.roughRequest}
+                      </p>
+
+                      <div className="text-[9px] font-mono text-slate-600 text-left">
+                        {new Date(item.timestamp).toLocaleDateString([], { month: "short", day: "numeric" })} • {new Date(item.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            )}
           </div>
 
         </section>

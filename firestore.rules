@@ -39,6 +39,14 @@ service cloud.firestore {
         && data.timestamp is string;
     }
 
+    // Preferences entity field constraints
+    function isValidPreferences(data) {
+      return data.targetAI is string && data.targetAI.size() <= 200
+        && data.modePreference is string && data.modePreference.size() <= 200
+        && data.domain is string && data.domain.size() <= 200
+        && data.updatedAt is string;
+    }
+
     // User prompt optimization subcollection match
     match /users/{userId}/optimizations/{optimizationId} {
       allow list, get: if isOwner(userId);
@@ -51,6 +59,15 @@ service cloud.firestore {
                     && isValidOptimization(request.resource.data)
                     && request.resource.data.userId == request.auth.uid
                     && request.resource.data.roughRequest == resource.data.roughRequest; // Keep immutability
+      allow delete: if isOwner(userId);
+    }
+
+    // User preferences match
+    match /users/{userId}/preferences/{preferenceId} {
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+                    && isValidId(preferenceId)
+                    && isValidPreferences(request.resource.data);
       allow delete: if isOwner(userId);
     }
 

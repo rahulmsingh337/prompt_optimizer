@@ -27,3 +27,25 @@ export interface QueryState {
   domain: string;
   roughRequest: string;
 }
+
+export interface HistoryItem {
+  id: string;
+  userId: string;
+  roughRequest: string;
+  optimizedPrompt: string;
+  proTip?: string | null;
+  domain?: string | null;
+  targetAI?: string | null;
+  timestamp: string;
+  modeUsed?: "BASIC" | "DETAIL" | null;
+  improvements?: string[] | null;
+  techniquesApplied?: string[] | null;
+}
+
+export interface UserPreferences {
+  targetAI: string;
+  modePreference: "Auto" | "BASIC" | "DETAIL";
+  domain: string;
+  updatedAt: string;
+}
+

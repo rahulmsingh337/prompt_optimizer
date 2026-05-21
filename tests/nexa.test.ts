@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { validateGeminiApiKey, feedbackDatabase } from "../server.ts";
+import { validateGeminiApiKey, feedbackDatabase, resilientJsonParse, logServerError } from "../server.ts";
 
 // Utility mock structures to test the express responses if needed
 interface MockRequest {
@@ -335,6 +335,55 @@ describe("NEXA Prompt Agent E2E and Integration Test Suite", () => {
 
       const parsed = JSON.parse(cleanedOutput);
       expect(parsed.optimizedPrompt).toBe("hi");
+    });
+
+    it("should recover and cleanly parse json featuring minor LLM syntax anomalies", () => {
+      // 1. Recover from stray trailing commas (a very common occurrence in llm-responses)
+      const badJsonWithComma = `
+      {
+        "status": "success",
+        "improvements": ["Imp 1", "Imp 2",],
+      }
+      `;
+      const parsed1 = resilientJsonParse(badJsonWithComma);
+      expect(parsed1.status).toBe("success");
+      expect(parsed1.improvements).toHaveLength(2);
+
+      // 2. Recover from surrounding non-json explanation prose (e.g. "Here is the json: { ... }")
+      const wrapperJson = `
+Here is your requested output:
+{
+  "modeUsed": "BASIC",
+  "proTip": "Use concise language."
+}
+Of course, let me know if you need more changes!
+      `;
+      const parsed2 = resilientJsonParse(wrapperJson);
+      expect(parsed2.modeUsed).toBe("BASIC");
+      expect(parsed2.proTip).toBe("Use concise language.");
+
+      // 3. Fallback to original parsing error for fully un-parseable content
+      expect(() => resilientJsonParse("Not valid json at all!")).toThrow();
+    });
+
+    it("should execute error logging without any exception when given diverse formats", () => {
+      // Confirm that the diagnostic logging executes safely for various payloads
+      const samplePayload = { roughRequest: "Short test", targetAI: "None" };
+      
+      expect(() => {
+        logServerError("UNIT_TEST_CONTEXT", new Error("An illustrative error"), samplePayload);
+      }).not.toThrow();
+
+      expect(() => {
+        const complexError = {
+          name: "APIQuotaError",
+          message: "Trigger limit hit",
+          status: 429,
+          errorDetails: { limit: "15rpm", current: "16rpm" },
+          stack: "Error: Trigger limit hit\n  at index.js:1:1"
+        };
+        logServerError("COMPLEX_UNIT_TEST", complexError, { roughRequest: "A".repeat(1000) });
+      }).not.toThrow();
     });
   });
 });
