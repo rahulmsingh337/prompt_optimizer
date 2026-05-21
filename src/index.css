@@ -32,3 +32,19 @@ body {
   background: #334155;
 }
 
+/* Override Prism tomorrow styles to perfectly integrate with NEXA display cards */
+pre[class*="language-"],
+code[class*="language-"] {
+  background: transparent !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* Ensure nice font size and leading in code snippets */
+code[class*="language-"] {
+  font-family: var(--font-mono) !important;
+}
+
+

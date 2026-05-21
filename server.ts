@@ -215,110 +215,139 @@ JSON Response Schema:
  * Audit the user's rough request for potential prompt injection vectors or sensitive data exposure,
  * returning structured diagnostics to merge into the response fields.
  */
-export function scanRoughRequestForRisks(roughRequest: string): { improvements: string[], techniquesApplied: string[] } {
+/**
+ * Audit the user's rough request for potential prompt injection vectors or sensitive data exposure,
+ * returning structured diagnostics to merge into the response fields.
+ * Includes defensive boundaries for type safety, input bounds (ReDoS defense), and exception handling.
+ */
+export function scanRoughRequestForRisks(roughRequest: any): { improvements: string[], techniquesApplied: string[] } {
   const improvements: string[] = [];
   const techniquesApplied: string[] = [];
-  const text = roughRequest || "";
 
-  // 1. Prompt Injection Checks
-  const injectionPatterns = [
-    /\bignore\s+(?:previous|above|all)\s+instructions\b/i,
-    /\bbypass\s+(?:system|security|prompt|guard)\s+instructions\b/i,
-    /\byou\s+must\s+now\s+act\s+as\b/i,
-    /\bforget\s+(?:your|previous|above)\s+objective\b/i,
-    /\bsystem\s+instruction\s+bypass\b/i,
-    /\bdo\s+not\s+use\s+(?:your\s+)?system\s+prompt\b/i,
-    /\bnew\s+role\s*:\s*you\s+are\b/i,
-    /\bignore\s+all\s+the\s+instructions\s+before\b/i,
-    /\bdeveloper\s+mode\s+active\b/i,
-    /\bstop\s+current\s+instruction\b/i,
-    /\bcmd\s+override\b/i,
-  ];
+  try {
+    // Coerce safe bounded string representation
+    let text = "";
+    if (typeof roughRequest === "string") {
+      text = roughRequest;
+    } else if (roughRequest !== null && roughRequest !== undefined) {
+      if (typeof roughRequest === "object") {
+        try {
+          text = JSON.stringify(roughRequest);
+        } catch (e) {
+          text = String(roughRequest);
+        }
+      } else {
+        text = String(roughRequest);
+      }
+    }
 
-  const hasInjection = injectionPatterns.some(pattern => pattern.test(text));
-  if (hasInjection) {
-    improvements.push("DIAGNOSTIC (Security/Edge-case): Prompt Injection Risk Detected. The input contains patterns attempting to override or bypass system instructions and constraints.");
-    techniquesApplied.push("Prompt Injection Neutralization Guard", "Adversarial Input Sandboxing");
-  }
+    // Defensive boundary: truncate input text to limit regex search range and protect against ReDoS
+    if (text.length > 5000) {
+      text = text.substring(0, 5000);
+    }
 
-  // 2. Sensitive Data Exposure - API Keys / Secrets
-  const apiKeyPatterns = [
-    /AIzaSy[A-Za-z0-9_-]{33}/, // Google Gemini / Firebase API key
-    /sk-[a-zA-Z0-9]{20,}/,     // OpenAI / Anthropic key
-    /\bapi[_-]?key\s*=\s*(['"`])[a-zA-Z0-9._-]{10,}\1/i,
-    /\bpass(?:word)?\s*=\s*(['"`])[^'"`]{4,}\1/i,
-    /\bclient[_-]?secret\s*=\s*(['"`])[a-zA-Z0-9._-]{10,}\1/i,
-  ];
+    // 1. Prompt Injection Checks
+    const injectionPatterns = [
+      /\bignore\s+(?:previous|above|all)\s+instructions\b/i,
+      /\bbypass\s+(?:system|security|prompt|guard)\s+instructions\b/i,
+      /\byou\s+must\s+now\s+act\s+as\b/i,
+      /\bforget\s+(?:your|previous|above)\s+objective\b/i,
+      /\bsystem\s+instruction\s+bypass\b/i,
+      /\bdo\s+not\s+use\s+(?:your\s+)?system\s+prompt\b/i,
+      /\bnew\s+role\s*:\s*you\s+are\b/i,
+      /\bignore\s+all\s+the\s+instructions\s+before\b/i,
+      /\bdeveloper\s+mode\s+active\b/i,
+      /\bstop\s+current\s+instruction\b/i,
+      /\bcmd\s+override\b/i,
+    ];
 
-  const hasSecrets = apiKeyPatterns.some(pattern => pattern.test(text));
-  if (hasSecrets) {
-    improvements.push("DIAGNOSTIC (Security/Edge-case): Sensitive Data Exposure: Potentially exposed API credential, token, or plaintext password string detected.");
-    techniquesApplied.push("Credential Masking & Stripping Filter", "Static Secret Scanner Filters");
-  }
+    const hasInjection = injectionPatterns.some(pattern => pattern.test(text));
+    if (hasInjection) {
+      improvements.push("DIAGNOSTIC (Security/Edge-case): Prompt Injection Risk Detected. The input contains patterns attempting to override or bypass system instructions and constraints.");
+      techniquesApplied.push("Prompt Injection Neutralization Guard", "Adversarial Input Sandboxing");
+    }
 
-  // 3. Sensitive Data Exposure - PII (Email / Credit Cards)
-  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
+    // 2. Sensitive Data Exposure - API Keys / Secrets
+    const apiKeyPatterns = [
+      /AIzaSy[A-Za-z0-9_-]{33}/, // Google Gemini / Firebase API key
+      /sk-[a-zA-Z0-9]{20,}/,     // OpenAI / Anthropic key
+      /\bapi[_-]?key\s*=\s*(['"`])[a-zA-Z0-9._-]{10,}\1/i,
+      /\bpass(?:word)?\s*=\s*(['"`])[^'"`]{4,}\1/i,
+      /\bclient[_-]?secret\s*=\s*(['"`])[a-zA-Z0-9._-]{10,}\1/i,
+    ];
 
-  if (emailRegex.test(text)) {
-    improvements.push("DIAGNOSTIC (Security/Edge-case): Sensitive Data Exposure: Plaintext email address detected inside the instruction context.");
-    techniquesApplied.push("PII-Masking & Tokenization Directives", "Data Minimization Filter");
-  }
+    const hasSecrets = apiKeyPatterns.some(pattern => pattern.test(text));
+    if (hasSecrets) {
+      improvements.push("DIAGNOSTIC (Security/Edge-case): Sensitive Data Exposure: Potentially exposed API credential, token, or plaintext password string detected.");
+      techniquesApplied.push("Credential Masking & Stripping Filter", "Static Secret Scanner Filters");
+    }
 
-  const digitalSequence = text.replace(/[^0-9]/g, "");
-  if (digitalSequence.length >= 13 && digitalSequence.length <= 19 && /(?:\d[ -]?){13,19}/.test(text)) {
-    improvements.push("DIAGNOSTIC (Security/Edge-case): Sensitive Data Exposure: Potential credit card or high-entropy transaction ID sequence detected.");
-    techniquesApplied.push("Payment Card Exposure Shield", "Anti-Data-Leakage Isolation Boundaries");
-  }
+    // 3. Sensitive Data Exposure - PII (Email / Credit Cards)
+    const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/;
 
-  // 4. More Complex User Intents (Workflows, stage-based sequences, multi-actor coordination)
-  const complexIntentPatterns = [
-    /\b(?:workflow|pipeline|orchestrat|multi-stage|multi-phase|stages?|phases?|recursion|recursive|looping|sub-agent|delegat(?:e|ion))\b/i,
-    /\b(?:first|then|next|after that|subsequent|stage \d|phase \d)\b/i,
-  ];
-  if (complexIntentPatterns.some(pattern => pattern.test(text))) {
-    improvements.push("DIAGNOSTIC (Complex Intent): Multi-phase agentic or workflow sequence detected without explicit phase gating or state boundaries.");
-    techniquesApplied.push("Dynamic Workflow Phase Gating Segmenter", "Orchestrated State Machine Flow Isolation");
-  }
+    if (emailRegex.test(text)) {
+      improvements.push("DIAGNOSTIC (Security/Edge-case): Sensitive Data Exposure: Plaintext email address detected inside the instruction context.");
+      techniquesApplied.push("PII-Masking & Tokenization Directives", "Data Minimization Filter");
+    }
 
-  // 5. Implicit Constraints (Missing pagination limits, timeout rules, or retry limits on databases/APIs)
-  const implicitConstraintPatterns = [
-    /\b(?:query|db|database|fetch|find|select|where|records?|rows?|api|http|request|axios|load|download|save|write)\b/i,
-    /\b(?:error|fail|retry|timeout|abort|retry-limit|try\s+again)\b/i,
-  ];
-  if (implicitConstraintPatterns.some(pattern => pattern.test(text))) {
-    improvements.push("DIAGNOSTIC (Implicit Constraint): Operation lacks explicit retry tolerance bounds, response pagination limiters, or service timeout guards.");
-    techniquesApplied.push("Query Pagination & Boundary Limiters", "Resilient Request Retry & Exponential Backoff Spec");
-  }
+    const digitalSequence = text.replace(/[^0-9]/g, "");
+    if (digitalSequence.length >= 13 && digitalSequence.length <= 19 && /(?:\d[ -]?){13,19}/.test(text)) {
+      improvements.push("DIAGNOSTIC (Security/Edge-case): Sensitive Data Exposure: Potential credit card or high-entropy transaction ID sequence detected.");
+      techniquesApplied.push("Payment Card Exposure Shield", "Anti-Data-Leakage Isolation Boundaries");
+    }
 
-  // 6. Potential Ambiguities (Vague relative adjectives orqualities like 'fast', 'optimal', 'catchy')
-  const ambiguityPatterns = [
-    /\b(?:fast|quick|optimal|catchy|best|better|asap|as\s+soon\s+as\s+possible|should\s+be|modern|dynamic|premium|responsive|interactive|flexible|simple)\b/i,
-  ];
-  if (ambiguityPatterns.some(pattern => pattern.test(text))) {
-    improvements.push("DIAGNOSTIC (Semantic Ambiguity): Qualitative performance/design targets (e.g. 'fast', 'optimal', 'modern') detected. Standardized prompt demands absolute quantitative performance thresholds.");
-    techniquesApplied.push("Quantitative Threshold Target Mapping", "Imperative Action-Voice Style Declarations");
-  }
+    // 4. More Complex User Intents (Workflows, stage-based sequences, multi-actor coordination)
+    const complexIntentPatterns = [
+      /\b(?:workflow|pipeline|orchestrat|multi-stage|multi-phase|stages?|phases?|recursion|recursive|looping|sub-agent|delegat(?:e|ion))\b/i,
+      /\b(?:first|then|next|after that|subsequent|stage \d|phase \d)\b/i,
+    ];
+    if (complexIntentPatterns.some(pattern => pattern.test(text))) {
+      improvements.push("DIAGNOSTIC (Complex Intent): Multi-phase agentic or workflow sequence detected without explicit phase gating or state boundaries.");
+      techniquesApplied.push("Dynamic Workflow Phase Gating Segmenter", "Orchestrated State Machine Flow Isolation");
+    }
 
-  // 7. Security Edge Cases (SQL Injection, XSS, SSRF, Command Injection, Directory Traversal)
-  if (/\b(?:raw sql|sql query|select\s+\*\s+from|statement injection|vulnerable queries)\b/i.test(text)) {
-    improvements.push("DIAGNOSTIC (Security/Edge-case): Direct SQL transaction query format detected. High risk of raw database manipulation exploit without parameterized query bindings.");
-    techniquesApplied.push("Anti-SQL-Injection Parameterization Spec");
-  }
-  if (/\b(?:innerhtml|html injection|eval|untrusted html|render raw html|custom script rendering)\b/i.test(text)) {
-    improvements.push("DIAGNOSTIC (Security/Edge-case): Unsanitized raw markup rendering detected. High vulnerability to Cross-Site Scripting (XSS) injection.");
-    techniquesApplied.push("Cross-Site-Scripting (XSS) Prevention Strategy");
-  }
-  if (/\b(?:webhook|fetch url|user URL|redirect url|ping endpoint|external source download)\b/i.test(text)) {
-    improvements.push("DIAGNOSTIC (Security/Edge-case): Endpoint redirection/arbitrary user URL lookup detected. Vulnerable to Server-Side Request Forgery (SSRF) without egress boundaries.");
-    techniquesApplied.push("Anti-SSRF Target Validation Filter");
-  }
-  if (/\b(?:shell command|exec|run terminal|execute system|system path run)\b/i.test(text)) {
-    improvements.push("DIAGNOSTIC (Security/Edge-case): Raw binary process execution or direct command shell invocation detected. Vulnerable to remote code execution (RCE).");
-    techniquesApplied.push("Anti-Command-Injection Mitigation");
-  }
-  if (/\b(?:file path|read file|absolute path|traverse directory|file system read)\b/i.test(text)) {
-    improvements.push("DIAGNOSTIC (Security/Edge-case): Dynamic local filesystem reference detected. High exposure to directory traversal without canonized relative mappings.");
-    techniquesApplied.push("Canonical Path Resolving Validation");
+    // 5. Implicit Constraints (Missing pagination limits, timeout rules, or retry limits on databases/APIs)
+    const implicitConstraintPatterns = [
+      /\b(?:query|db|database|fetch|find|select|where|records?|rows?|api|http|request|axios|load|download|save|write)\b/i,
+      /\b(?:error|fail|retry|timeout|abort|retry-limit|try\s+again)\b/i,
+    ];
+    if (implicitConstraintPatterns.some(pattern => pattern.test(text))) {
+      improvements.push("DIAGNOSTIC (Implicit Constraint): Operation lacks explicit retry tolerance bounds, response pagination limiters, or service timeout guards.");
+      techniquesApplied.push("Query Pagination & Boundary Limiters", "Resilient Request Retry & Exponential Backoff Spec");
+    }
+
+    // 6. Potential Ambiguities (Vague relative adjectives orqualities like 'fast', 'optimal', 'catchy')
+    const ambiguityPatterns = [
+      /\b(?:fast|quick|optimal|catchy|best|better|asap|as\s+soon\s+as\s+possible|should\s+be|modern|dynamic|premium|responsive|interactive|flexible|simple)\b/i,
+    ];
+    if (ambiguityPatterns.some(pattern => pattern.test(text))) {
+      improvements.push("DIAGNOSTIC (Semantic Ambiguity): Qualitative performance/design targets (e.g. 'fast', 'optimal', 'modern') detected. Standardized prompt demands absolute quantitative performance thresholds.");
+      techniquesApplied.push("Quantitative Threshold Target Mapping", "Imperative Action-Voice Style Declarations");
+    }
+
+    // 7. Security Edge Cases (SQL Injection, XSS, SSRF, Command Injection, Directory Traversal)
+    if (/\b(?:raw sql|sql query|select\s+\*\s+from|statement injection|vulnerable queries)\b/i.test(text)) {
+      improvements.push("DIAGNOSTIC (Security/Edge-case): Direct SQL transaction query format detected. High risk of raw database manipulation exploit without parameterized query bindings.");
+      techniquesApplied.push("Anti-SQL-Injection Parameterization Spec");
+    }
+    if (/\b(?:innerhtml|html injection|eval|untrusted html|render raw html|custom script rendering)\b/i.test(text)) {
+      improvements.push("DIAGNOSTIC (Security/Edge-case): Unsanitized raw markup rendering detected. High vulnerability to Cross-Site Scripting (XSS) injection.");
+      techniquesApplied.push("Cross-Site-Scripting (XSS) Prevention Strategy");
+    }
+    if (/\b(?:webhook|fetch url|user URL|redirect url|ping endpoint|external source download)\b/i.test(text)) {
+      improvements.push("DIAGNOSTIC (Security/Edge-case): Endpoint redirection/arbitrary user URL lookup detected. Vulnerable to Server-Side Request Forgery (SSRF) without egress boundaries.");
+      techniquesApplied.push("Anti-SSRF Target Validation Filter");
+    }
+    if (/\b(?:shell command|exec|run terminal|execute system|system path run)\b/i.test(text)) {
+      improvements.push("DIAGNOSTIC (Security/Edge-case): Raw binary process execution or direct command shell invocation detected. Vulnerable to remote code execution (RCE).");
+      techniquesApplied.push("Anti-Command-Injection Mitigation");
+    }
+    if (/\b(?:file path|read file|absolute path|traverse directory|file system read)\b/i.test(text)) {
+      improvements.push("DIAGNOSTIC (Security/Edge-case): Dynamic local filesystem reference detected. High exposure to directory traversal without canonized relative mappings.");
+      techniquesApplied.push("Canonical Path Resolving Validation");
+    }
+  } catch (scanError) {
+    console.warn("[NEXA SECURITY SCANNER] Failed to perform request scan. Proceeding with clean fallback.", scanError);
   }
 
   return { improvements, techniquesApplied };
@@ -459,26 +488,41 @@ If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with s
       const parsedData = resilientJsonParse(textOutput);
 
       // Inject robust code-level security scan findings if detected
-      const securityScan = scanRoughRequestForRisks(roughRequest);
-      if (securityScan.improvements.length > 0) {
-        if (!parsedData.improvements) {
-          parsedData.improvements = [];
-        }
-        if (!parsedData.techniquesApplied) {
-          parsedData.techniquesApplied = [];
-        }
-
-        securityScan.improvements.forEach((imp: string) => {
-          if (!parsedData.improvements.some((existing: string) => existing.includes(imp.substring(0, 30)))) {
-            parsedData.improvements.unshift(imp);
+      try {
+        const securityScan = scanRoughRequestForRisks(roughRequest);
+        if (securityScan.improvements.length > 0) {
+          // Robust array coercion for improvements
+          if (!parsedData.improvements) {
+            parsedData.improvements = [];
+          } else if (!Array.isArray(parsedData.improvements)) {
+            parsedData.improvements = typeof parsedData.improvements === "string"
+              ? [parsedData.improvements]
+              : [];
           }
-        });
 
-        securityScan.techniquesApplied.forEach((tech: string) => {
-          if (!parsedData.techniquesApplied.some((existing: string) => existing.toLowerCase() === tech.toLowerCase())) {
-            parsedData.techniquesApplied.unshift(tech);
+          // Robust array coercion for techniquesApplied
+          if (!parsedData.techniquesApplied) {
+            parsedData.techniquesApplied = [];
+          } else if (!Array.isArray(parsedData.techniquesApplied)) {
+            parsedData.techniquesApplied = typeof parsedData.techniquesApplied === "string"
+              ? [parsedData.techniquesApplied]
+              : [];
           }
-        });
+
+          securityScan.improvements.forEach((imp: string) => {
+            if (!parsedData.improvements.some((existing: any) => typeof existing === "string" && existing.includes(imp.substring(0, 30)))) {
+              parsedData.improvements.unshift(imp);
+            }
+          });
+
+          securityScan.techniquesApplied.forEach((tech: string) => {
+            if (!parsedData.techniquesApplied.some((existing: any) => typeof existing === "string" && existing.toLowerCase() === tech.toLowerCase())) {
+              parsedData.techniquesApplied.unshift(tech);
+            }
+          });
+        }
+      } catch (scanError) {
+        console.warn("[NEXA ROUTE OPTIMIZATION] Scan injection failed defensively:", scanError);
       }
 
       res.json(parsedData);
@@ -572,26 +616,41 @@ Please synthesize the absolute ultimate tailored optimized prompt incorporating 
       const parsedData = resilientJsonParse(textOutput);
 
       // Inject robust code-level security scan findings if detected
-      const securityScan = scanRoughRequestForRisks(roughRequest);
-      if (securityScan.improvements.length > 0) {
-        if (!parsedData.improvements) {
-          parsedData.improvements = [];
-        }
-        if (!parsedData.techniquesApplied) {
-          parsedData.techniquesApplied = [];
-        }
-
-        securityScan.improvements.forEach((imp: string) => {
-          if (!parsedData.improvements.some((existing: string) => existing.includes(imp.substring(0, 30)))) {
-            parsedData.improvements.unshift(imp);
+      try {
+        const securityScan = scanRoughRequestForRisks(roughRequest);
+        if (securityScan.improvements.length > 0) {
+          // Robust array coercion for improvements
+          if (!parsedData.improvements) {
+            parsedData.improvements = [];
+          } else if (!Array.isArray(parsedData.improvements)) {
+            parsedData.improvements = typeof parsedData.improvements === "string"
+              ? [parsedData.improvements]
+              : [];
           }
-        });
 
-        securityScan.techniquesApplied.forEach((tech: string) => {
-          if (!parsedData.techniquesApplied.some((existing: string) => existing.toLowerCase() === tech.toLowerCase())) {
-            parsedData.techniquesApplied.unshift(tech);
+          // Robust array coercion for techniquesApplied
+          if (!parsedData.techniquesApplied) {
+            parsedData.techniquesApplied = [];
+          } else if (!Array.isArray(parsedData.techniquesApplied)) {
+            parsedData.techniquesApplied = typeof parsedData.techniquesApplied === "string"
+              ? [parsedData.techniquesApplied]
+              : [];
           }
-        });
+
+          securityScan.improvements.forEach((imp: string) => {
+            if (!parsedData.improvements.some((existing: any) => typeof existing === "string" && existing.includes(imp.substring(0, 30)))) {
+              parsedData.improvements.unshift(imp);
+            }
+          });
+
+          securityScan.techniquesApplied.forEach((tech: string) => {
+            if (!parsedData.techniquesApplied.some((existing: any) => typeof existing === "string" && existing.toLowerCase() === tech.toLowerCase())) {
+              parsedData.techniquesApplied.unshift(tech);
+            }
+          });
+        }
+      } catch (scanError) {
+        console.warn("[NEXA ROUTE ANSWERS] Scan injection failed defensively:", scanError);
       }
 
       res.json(parsedData);

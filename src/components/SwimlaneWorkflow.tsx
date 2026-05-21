@@ -165,7 +165,10 @@ export default function SwimlaneWorkflow() {
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="lg:hidden text-[9px] font-bold font-mono tracking-wider uppercase px-2.5 py-1.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/10 animate-pulse">
+            Swipe Horizontal ↔
+          </div>
           <button
             type="button"
             onClick={startSimulation}
@@ -179,7 +182,7 @@ export default function SwimlaneWorkflow() {
           <button
             type="button"
             onClick={resetSimulation}
-            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-850 text-slate-400 hover:text-slate-200 cursor-pointer transition-colors"
+            className="p-1.5 rounded-lg bg-slate-900 hover:bg-slate-850 border border-slate-800 text-slate-400 hover:text-slate-200 cursor-pointer transition-colors"
             title="Reset Simulation"
           >
             <RotateCcw className="w-3.5 h-3.5" />
