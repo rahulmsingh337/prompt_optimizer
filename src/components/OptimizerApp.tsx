@@ -893,14 +893,28 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                       </>
                     ) : (
                       <>
-                        <Copy className="w-3 h-3" /> Copy Prompt
+                        <Copy className="w-3 h-3" /> Copy to Clipboard
                       </>
                     )}
                   </button>
                 </div>
-                <pre className="p-4 rounded-xl bg-[#030610]/40 border border-slate-950/50 text-xs text-slate-250 font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-56 select-all select-none backdrop-blur-sm">
-                  {response.optimizedPrompt}
-                </pre>
+                <div className="relative group/prompt">
+                  <pre className="p-4 pr-12 rounded-xl bg-[#030610]/40 border border-slate-950/50 text-xs text-slate-255 font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-56 select-all select-none backdrop-blur-sm">
+                    {response.optimizedPrompt}
+                  </pre>
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(response.optimizedPrompt || "")}
+                    className="absolute top-3 right-3 p-1.5 rounded-lg bg-slate-900/90 border border-slate-800 hover:bg-slate-850 hover:text-white transition-all text-slate-400 cursor-pointer shadow-md flex items-center justify-center"
+                    title="Copy to Clipboard"
+                  >
+                    {copiedPrompt ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Bullet Improvements */}
