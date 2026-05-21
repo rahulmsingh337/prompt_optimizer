@@ -260,9 +260,9 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
             type="button"
             onClick={() => setShowWelcome(true)}
             className="px-2.5 py-1 text-xs font-mono font-medium rounded-lg border border-sky-500/20 text-sky-400 bg-slate-950 hover:bg-sky-500/10 transition-colors cursor-pointer select-none shrink-0"
-            title="Open greeting module settings"
+            title="Open About NEXA system handbook"
           >
-            "hello" Spec
+            About Us
           </button>
 
           <button
@@ -310,7 +310,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
         
         {/* LEFT COLUMN: Controls Panel (5 Columns) */}
         <section className="lg:col-span-5 flex flex-col gap-6">
-          <div className="p-6 rounded-2xl bg-slate-950 border border-slate-900 flex flex-col gap-5">
+          <div className="p-6 rounded-2xl bg-slate-950/45 border border-slate-900/60 flex flex-col gap-5 backdrop-blur-lg shadow-xl shadow-slate-950/10">
             <div className="flex items-center gap-2 border-b border-slate-900 pb-3">
               <Terminal className="w-5 h-5 text-sky-500" />
               <h2 className="font-display font-bold text-sm text-slate-200">Core Optimization Parameters</h2>
@@ -428,7 +428,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                 value={roughRequest}
                 onChange={(e) => setRoughRequest(e.target.value)}
                 placeholder="Share your rough idea, tasks, or list here..."
-                className="w-full h-40 bg-[#0c1222] border border-slate-850 rounded-lg p-3 text-xs text-slate-200 placeholder-slate-600 resize-none focus:border-sky-500 focus:outline-none leading-relaxed font-sans"
+                className="w-full h-40 bg-[#0c1222]/35 border border-slate-850/60 rounded-lg p-3 text-xs text-slate-200 placeholder-slate-600 resize-none focus:border-sky-500 focus:outline-none leading-relaxed font-sans backdrop-blur-sm"
               />
             </div>
 
@@ -478,8 +478,8 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
 
           {/* ACTIVE QUEUED / EXECUTED VIEW */}
           {!response && !isLoading ? (
-            <div className="flex-1 rounded-2xl bg-slate-950/60 border border-slate-900 border-dashed p-10 flex flex-col items-center justify-center text-center">
-              <Zap className="w-10 h-10 text-slate-700 animate-pulse mb-4" />
+            <div className="flex-1 rounded-2xl bg-slate-950/30 border border-slate-900/40 border-dashed p-10 flex flex-col items-center justify-center text-center backdrop-blur-md">
+              <Zap className="w-10 h-10 text-slate-600 animate-pulse mb-4" />
               <h3 className="font-display font-medium text-slate-400 text-sm">Awaiting Instruction Stream</h3>
               <p className="text-xs text-slate-500 max-w-sm mt-1 leading-normal">
                 Input your rough request, tune target variables in the parameters panel, and submit to compile dynamic prompts.
@@ -487,7 +487,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
             </div>
           ) : isLoading ? (
             /* LOADING INTERMEDIATE SHIELD */
-            <div className="flex-1 rounded-2xl bg-slate-950 border border-slate-900 p-8 flex flex-col items-center justify-center text-center">
+            <div className="flex-1 rounded-2xl bg-slate-950/45 border border-slate-900/60 p-8 flex flex-col items-center justify-center text-center backdrop-blur-lg shadow-xl shadow-slate-950/10">
               <div className="relative mb-6">
                 <div className="w-12 h-12 rounded-full border-2 border-slate-800 border-t-sky-500 animate-spin"></div>
                 <Sparkles className="w-5 h-5 text-sky-400 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
@@ -500,7 +500,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
           ) : response?.clarifyingQuestions ? (
             
             /* ACTIVE DETAIL QUESTIONNAIRE CARD SYSTEM */
-            <div className="flex-1 rounded-2xl bg-slate-950 border border-slate-900 p-6 flex flex-col justify-between text-left">
+            <div className="flex-1 rounded-2xl bg-slate-950/45 border border-slate-900/60 p-6 flex flex-col justify-between text-left backdrop-blur-lg shadow-xl shadow-slate-950/10">
               <div>
                 <div className="flex items-center justify-between border-b border-slate-900 pb-3 mb-5">
                   <div className="flex items-center gap-2 text-amber-500">
@@ -532,7 +532,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                             }
                           });
                         }}
-                        className="w-full bg-[#0c1222] border border-slate-850 text-xs text-slate-200 rounded-lg p-3 focus:border-sky-500 focus:outline-none font-sans"
+                        className="w-full bg-[#0c1222]/35 border border-slate-850/60 text-xs text-slate-200 rounded-lg p-3 focus:border-sky-500 focus:outline-none font-sans backdrop-blur-sm"
                         placeholder="Type answer or modify suggested response..."
                       />
                       <span className="block text-[10px] text-slate-500 italic">Smart Suggestion: {q.defaultAnswer}</span>
@@ -562,7 +562,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
           ) : (
             
             /* COMPILED OPTIMIZATION WRAPPER OUTPUT */
-            <div className="flex-1 rounded-2xl bg-slate-950 border border-slate-900 p-6 flex flex-col gap-6 text-left">
+            <div className="flex-1 rounded-2xl bg-slate-950/45 border border-slate-900/60 p-6 flex flex-col gap-6 text-left backdrop-blur-lg shadow-xl shadow-slate-950/10">
               
               <div className="flex items-center justify-between border-b border-slate-900 pb-3">
                 <div className="flex items-center gap-2 text-sky-400">
@@ -604,7 +604,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                     )}
                   </button>
                 </div>
-                <pre className="p-4 rounded-xl bg-[#030610] border border-slate-950 text-xs text-slate-250 font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-56 select-all select-none">
+                <pre className="p-4 rounded-xl bg-[#030610]/40 border border-slate-950/50 text-xs text-slate-250 font-mono overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-56 select-all select-none backdrop-blur-sm">
                   {response.optimizedPrompt}
                 </pre>
               </div>
@@ -690,7 +690,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                       value={feedbackComment}
                       onChange={(e) => setFeedbackComment(e.target.value)}
                       placeholder="Optional: What could NEXA do better? e.g. target formatting, tone tweaks..."
-                      className="w-full h-16 bg-[#0c1222] border border-slate-850 rounded-lg p-2.5 text-xs text-slate-200 placeholder-slate-600 focus:border-sky-500 focus:outline-none resize-none leading-relaxed"
+                      className="w-full h-16 bg-[#0c1222]/35 border border-slate-850/60 rounded-lg p-2.5 text-xs text-slate-200 placeholder-slate-600 focus:border-sky-500 focus:outline-none resize-none leading-relaxed backdrop-blur-sm"
                     />
                     <div className="flex items-center justify-between">
                       {feedbackError ? (
@@ -725,7 +725,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
 
           {/* Anonymized Community Telemetry Log */}
           {communityFeedbacks.length > 0 && (
-            <div className="p-6 rounded-2xl bg-slate-950/40 border border-slate-900 flex flex-col gap-4 text-left">
+            <div className="p-6 rounded-2xl bg-slate-950/30 border border-slate-900/50 flex flex-col gap-4 text-left backdrop-blur-md">
               <div className="flex items-center justify-between border-b border-slate-900 pb-3">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-slate-400" />
@@ -736,7 +736,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
               
               <div className="space-y-2.5 max-h-48 overflow-y-auto">
                 {communityFeedbacks.slice(0, 4).map((f: any, i: number) => (
-                  <div key={i} className="p-2.5 rounded-lg bg-slate-950 border border-slate-900 flex items-start gap-2.5 text-xs">
+                  <div key={i} className="p-2.5 rounded-lg bg-slate-950/25 border border-slate-900/40 flex items-start gap-2.5 text-xs backdrop-blur-sm">
                     <span className="shrink-0 mt-0.5">
                       {f.rating === "up" ? (
                         <ThumbsUp className="w-3.5 h-3.5 text-emerald-400" />
@@ -769,10 +769,10 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
 
       </main>
 
-      {/* SYSTEM REQUIRED WELCOME POPUP ON ACTIVATE "hello" / AND ON FIRST TIME APP LOG IN */}
+      {/* SYSTEM REQUIRED ABOUT US POPUP AND ON FIRST TIME APP LOG IN */}
       {showWelcome && (
         <div className="fixed inset-0 bg-[#000]/60 backdrop-blur-sm flex items-center justify-center p-6 z-50">
-          <div className="max-w-lg w-full bg-slate-950 border border-slate-900 p-8 rounded-2xl shadow-2xl-strong text-left relative overflow-hidden">
+          <div className="max-w-lg w-full bg-slate-950/65 border border-slate-900/80 p-8 rounded-2xl shadow-2xl-strong text-left relative overflow-hidden backdrop-blur-xl">
             {/* Design accents */}
             <div className="absolute top-0 right-0 w-24 h-24 bg-sky-500/10 rounded-full blur-2xl"></div>
 
@@ -781,8 +781,8 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
               <div>
-                <span className="font-display font-bold text-base text-white">NEXA Initialization Module</span>
-                <span className="block text-[9px] font-mono text-sky-400 font-bold tracking-wider uppercase">REQUIRED SYSTEM HANDSHAKE</span>
+                <span className="font-display font-bold text-base text-white">About NEXA Optimizer</span>
+                <span className="block text-[9px] font-mono text-sky-400 font-bold tracking-wider uppercase">CORE SERVICES SPECIFICATION</span>
               </div>
             </div>
 
@@ -815,7 +815,7 @@ Just share your rough prompt and I'll handle the rest!`}
       {/* WORKFLOW BLUEPRINT DIALOG OVERLAY */}
       {showWorkflowModal && (
         <div className="fixed inset-0 bg-[#000]/70 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="max-w-4xl w-full bg-slate-950 border border-slate-900 p-5 md:p-6 rounded-2xl shadow-2xl relative overflow-hidden max-h-[95vh] overflow-y-auto">
+          <div className="max-w-4xl w-full bg-slate-950/70 border border-[#1e293b]/60 p-5 md:p-6 rounded-2xl shadow-2xl relative overflow-hidden max-h-[95vh] overflow-y-auto backdrop-blur-xl">
             <div className="absolute top-4 right-4 z-20">
               <button
                 type="button"

@@ -24,8 +24,8 @@ export default function SignInPage({ onGoogleSignIn, isLoading }: SignInPageProp
       </header>
 
       {/* Main card box */}
-      <main className="relative z-10 flex-1 flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-slate-950/80 border border-slate-900 rounded-2xl p-8 shadow-2xl text-center backdrop-blur-md">
+      <main className="relative z-10 flex-1 flex items-center justify-center p-6 flex-col gap-6">
+        <div className="max-w-md w-full bg-slate-950/45 border border-slate-900/60 rounded-2xl p-8 shadow-2xl text-center backdrop-blur-lg">
           
           <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20 mx-auto mb-6">
             <Key className="w-6 h-6 text-white" />
@@ -44,7 +44,7 @@ export default function SignInPage({ onGoogleSignIn, isLoading }: SignInPageProp
               type="button"
               disabled={isLoading}
               onClick={onGoogleSignIn}
-              className="w-full py-3 px-5 rounded-xl bg-[#0d1222] hover:bg-[#151c33] border border-slate-800 hover:border-sky-500/30 text-white text-sm font-semibold flex items-center justify-center gap-3 transition-all duration-300 group disabled:opacity-50 cursor-pointer shadow-lg shadow-indigo-500/5 hover:shadow-indigo-500/10"
+              className="w-full py-3 px-5 rounded-xl bg-[#0d1222]/40 hover:bg-[#151c33]/60 border border-slate-800/50 hover:border-sky-500/40 text-white text-sm font-semibold flex items-center justify-center gap-3 transition-all duration-300 group disabled:opacity-50 cursor-pointer shadow-lg shadow-indigo-500/5 hover:shadow-indigo-500/10 backdrop-blur-sm"
             >
               <svg className="w-5 h-5 group-hover:scale-110 transition-transform" viewBox="0 0 24 24">
                 <path
@@ -73,7 +73,7 @@ export default function SignInPage({ onGoogleSignIn, isLoading }: SignInPageProp
           </div>
 
           {/* Quick instructions toggle */}
-          <div className="mt-8 pt-6 border-t border-slate-900 text-left">
+          <div className="mt-8 pt-6 border-t border-slate-900/60 text-left">
             <button
               type="button"
               onClick={() => setShowDocs(!showDocs)}
@@ -83,9 +83,9 @@ export default function SignInPage({ onGoogleSignIn, isLoading }: SignInPageProp
             </button>
 
             {showDocs && (
-              <div className="mt-4 p-4 rounded-xl bg-slate-900/60 border border-slate-850 font-mono text-[10px] leading-relaxed text-slate-400 space-y-3 max-h-48 overflow-y-auto">
+              <div className="mt-4 p-4 rounded-xl bg-slate-900/35 border border-slate-850/50 backdrop-blur-md font-mono text-[10px] leading-relaxed text-slate-400 space-y-3 max-h-48 overflow-y-auto">
                 <p className="font-semibold text-slate-200 uppercase">1. Live Connection:</p>
-                <div className="bg-slate-950 p-2 rounded text-slate-300 text-[9px] space-y-1">
+                <div className="bg-slate-950/40 p-2 rounded text-slate-300 text-[9px] space-y-1 border border-slate-900/30">
                   <div>Database: Firestore Enterprise</div>
                   <div>Sync Mode: Attribute-Based Access Controls</div>
                   <div>Provider: google.com Popup auth</div>

@@ -13,7 +13,7 @@ const PORT = 3000;
 app.use(express.json());
 
 // Helper function to validate the structure of the Google Gemini API key
-function validateGeminiApiKey(apiKey: string | undefined): void {
+export function validateGeminiApiKey(apiKey: string | undefined): void {
   if (!apiKey || apiKey.trim() === "") {
     throw new Error(
       "GEMINI_API_KEY is missing or undefined in your workspace environment variables. " +
@@ -26,8 +26,11 @@ function validateGeminiApiKey(apiKey: string | undefined): void {
   const trimmedKey = apiKey.trim();
 
   // Check for common sample placeholding phrases
-  const placeholders = ["your_gemini_api_key", "your_api_key", "placeholder", "todo", "insert_here", "abc"];
-  if (placeholders.some(p => trimmedKey.toLowerCase() === p || trimmedKey.toLowerCase().includes(p))) {
+  const placeholders = ["your_gemini_api_key", "your_api_key", "placeholder", "todo", "insert_here"];
+  if (
+    trimmedKey.toLowerCase() === "abc" ||
+    placeholders.some(p => trimmedKey.toLowerCase() === p || trimmedKey.toLowerCase().includes(p))
+  ) {
     throw new Error(
       `GEMINI_API_KEY appears to contain an invalid placeholder value ("${trimmedKey}"). ` +
       "You must supply a genuine, active API key from Google AI Studio (https://aistudio.google.com/) " +
@@ -83,13 +86,32 @@ interface FeedbackEntry {
   targetAI: string;
   timestamp: string;
 }
-const feedbackDatabase: FeedbackEntry[] = [];
+export const feedbackDatabase: FeedbackEntry[] = [];
 
 // Record feedback anonymously (Strictly no prompts or PIIs recorded)
 app.post("/api/feedback", (req: any, res: any) => {
   const { rating, comment, domain, targetAI } = req.body;
   if (!rating || (rating !== "up" && rating !== "down")) {
     return res.status(400).json({ error: "invalid_rating", message: "Rating must be 'up' or 'down'." });
+  }
+
+  // Email validation if email-like string is present in the comment
+  if (comment) {
+    const emailLikeRegex = /[^\s]+@[^\s]+/g;
+    const matches = comment.match(emailLikeRegex);
+    if (matches) {
+      const strictEmailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+      for (const match of matches) {
+        // Strip leading/trailing structural punctuation and brackets
+        const cleaned = match.replace(/^[.,;:!?()<>'"[\]]+|[.,;:!?()<>'"[\]]+$/g, "");
+        if (!strictEmailRegex.test(cleaned)) {
+          return res.status(400).json({
+            error: "invalid_email_format",
+            message: `The comment contains an invalid email format: "${cleaned}". Please verify and correct the email structure.`
+          });
+        }
+      }
+    }
   }
 
   const newFeedback: FeedbackEntry = {
@@ -197,7 +219,7 @@ app.post("/api/optimize", async (req: any, res: any) => {
     const isComplex = 
       roughRequest.length > 120 || 
       /\b(architecture|system|react|production|marketing|pipeline|database|api|strategy|analytics|deploy|scientific|financial|academic)\b/i.test(roughRequest) ||
-      /[\d\-\*]\s/.test(roughRequest); // has lists or bullets
+      /\b\d+\.\s|[\-*]\s/.test(roughRequest); // has lists or bullets
     selectedMode = isComplex ? "DETAIL" : "BASIC";
   }
 
@@ -412,6 +434,8 @@ async function startServer() {
   });
 }
 
-startServer().catch((error) => {
-  console.error("Critical server boot error: ", error);
-});
+if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
+  startServer().catch((error) => {
+    console.error("Critical server boot error: ", error);
+  });
+}

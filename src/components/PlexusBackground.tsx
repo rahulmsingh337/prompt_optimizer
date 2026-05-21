@@ -16,8 +16,8 @@ export default function PlexusBackground() {
 
     // Dynamic scale depending on window/screen size
     const isMobile = width < 768;
-    const numNodes = isMobile ? 35 : 75;
-    const connectDistance = isMobile ? 80 : 120;
+    const numNodes = isMobile ? 50 : 100;
+    const connectDistance = isMobile ? 100 : 150;
 
     interface Node {
       x: number;
@@ -37,16 +37,16 @@ export default function PlexusBackground() {
         x: Math.random() * width,
         y: Math.random() * height,
         // Slow atmospheric velocity
-        vx: (Math.random() - 0.5) * 0.35,
-        vy: (Math.random() - 0.5) * 0.35,
-        radius: Math.random() * 2 + 1,
+        vx: (Math.random() - 0.5) * 0.45,
+        vy: (Math.random() - 0.5) * 0.45,
+        radius: Math.random() * 2.5 + 1.2,
         pulseSpeed: 0.01 + Math.random() * 0.02,
         pulseTimer: Math.random() * Math.PI,
       });
     }
 
     // Capture mouse positions
-    const mouse = { x: -1000, y: -1000, radius: 150 };
+    const mouse = { x: -1000, y: -1000, radius: 180 };
 
     const handleMouseMove = (e: MouseEvent) => {
       mouse.x = e.clientX;
@@ -78,11 +78,11 @@ export default function PlexusBackground() {
     // Animation frame loop
     const animate = () => {
       // Clear with very slight transparency to leave a subtle visual trail
-      ctx.fillStyle = "rgba(7, 10, 19, 1)";
+      ctx.fillStyle = "rgba(11, 15, 25, 0.85)";
       ctx.fillRect(0, 0, width, height);
 
       // Draw faint square background grid lines matching the uploaded blueprint style
-      ctx.strokeStyle = "rgba(30, 41, 59, 0.07)";
+      ctx.strokeStyle = "rgba(99, 102, 241, 0.05)";
       ctx.lineWidth = 1;
       const gridSize = 80;
 
@@ -100,7 +100,7 @@ export default function PlexusBackground() {
       }
 
       // Draw subtle coordinates crosshairs / reference ticks matching the upload file structure
-      ctx.fillStyle = "rgba(99, 102, 241, 0.15)";
+      ctx.fillStyle = "rgba(99, 102, 241, 0.25)";
       const ticks = [
         { x: width * 0.3, y: height * 0.2 },
         { x: width * 0.7, y: height * 0.4 },
@@ -108,8 +108,8 @@ export default function PlexusBackground() {
         { x: width * 0.85, y: height * 0.75 }
       ];
       ticks.forEach((tick) => {
-        ctx.fillRect(tick.x - 3, tick.y, 7, 1);
-        ctx.fillRect(tick.x, tick.y - 3, 1, 7);
+        ctx.fillRect(tick.x - 4, tick.y, 9, 1);
+        ctx.fillRect(tick.x, tick.y - 4, 1, 9);
       });
 
       // Update and Draw nodes
@@ -135,14 +135,14 @@ export default function PlexusBackground() {
           if (dist < mouse.radius) {
             const force = (mouse.radius - dist) / mouse.radius;
             // Attract slightly
-            node.x += (dx / dist) * force * 0.45;
-            node.y += (dy / dist) * force * 0.45;
+            node.x += (dx / dist) * force * 0.6;
+            node.y += (dy / dist) * force * 0.6;
           }
         }
 
         // Draw pulsing soft glow
         node.pulseTimer += node.pulseSpeed;
-        const currentRadius = node.radius + Math.sin(node.pulseTimer) * 0.5;
+        const currentRadius = node.radius + Math.sin(node.pulseTimer) * 0.6;
 
         // Radial glowing node point matching exact visual reference upload colors (deep indigo to sky-blue)
         const gradient = ctx.createRadialGradient(
@@ -151,21 +151,21 @@ export default function PlexusBackground() {
           0,
           node.x,
           node.y,
-          currentRadius * 2.5
+          currentRadius * 3.5
         );
-        gradient.addColorStop(0, "rgba(129, 140, 248, 0.9)"); // celestial blue
-        gradient.addColorStop(0.5, "rgba(99, 102, 241, 0.4)"); // indigo
+        gradient.addColorStop(0, "rgba(56, 189, 248, 0.95)"); // celestial sky blue
+        gradient.addColorStop(0.4, "rgba(99, 102, 241, 0.45)"); // indigo
         gradient.addColorStop(1, "rgba(99, 102, 241, 0)");
 
         ctx.beginPath();
-        ctx.arc(node.x, node.y, currentRadius * 2.5, 0, Math.PI * 2);
+        ctx.arc(node.x, node.y, currentRadius * 3.5, 0, Math.PI * 2);
         ctx.fillStyle = gradient;
         ctx.fill();
 
         // Draw node core center
         ctx.beginPath();
-        ctx.arc(node.x, node.y, currentRadius * 0.5, 0, Math.PI * 2);
-        ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
+        ctx.arc(node.x, node.y, currentRadius * 0.6, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
         ctx.fill();
       });
 
@@ -179,9 +179,9 @@ export default function PlexusBackground() {
           const dist = Math.sqrt(dx * dx + dy * dy);
 
           if (dist < connectDistance) {
-            const alpha = (1 - dist / connectDistance) * 0.14;
+            const alpha = (1 - dist / connectDistance) * 0.22;
             ctx.strokeStyle = `rgba(99, 102, 241, ${alpha})`;
-            ctx.lineWidth = 0.75;
+            ctx.lineWidth = 0.9;
             ctx.beginPath();
             ctx.moveTo(n1.x, n1.y);
             ctx.lineTo(n2.x, n2.y);
@@ -195,9 +195,9 @@ export default function PlexusBackground() {
           const dy = mouse.y - n1.y;
           const dist = Math.sqrt(dx * dx + dy * dy);
           if (dist < mouse.radius) {
-            const alpha = (1 - dist / mouse.radius) * 0.18;
-            ctx.strokeStyle = `rgba(14, 165, 233, ${alpha})`; // Sky blue accent line
-            ctx.lineWidth = 1;
+            const alpha = (1 - dist / mouse.radius) * 0.28;
+            ctx.strokeStyle = `rgba(56, 189, 248, ${alpha})`; // Sky blue accent line
+            ctx.lineWidth = 1.1;
             ctx.beginPath();
             ctx.moveTo(n1.x, n1.y);
             ctx.lineTo(mouse.x, mouse.y);
@@ -222,8 +222,7 @@ export default function PlexusBackground() {
   return (
     <canvas
       ref={canvasRef}
-      className="fixed inset-0 w-full h-full -z-15 pointer-events-none select-none bg-[#05070f]"
-      style={{ mixBlendMode: "screen" }}
+      className="fixed inset-0 w-full h-full -z-10 pointer-events-none select-none bg-transparent"
     />
   );
 }

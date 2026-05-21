@@ -146,7 +146,7 @@ export default function SwimlaneWorkflow() {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-900 bg-slate-950/90 p-5 font-sans relative overflow-hidden backdrop-blur-md">
+    <div className="rounded-2xl border border-slate-900 bg-slate-950/40 p-5 font-sans relative overflow-hidden backdrop-blur-lg">
       {/* Absolute Decorative Grid Line Matching Blueprint Aesthetic */}
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b08_1px,transparent_1px),linear-gradient(to_bottom,#1e293b08_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none" />
 
