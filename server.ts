@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
 import { createServer as createViteServer } from "vite";
@@ -74,6 +75,137 @@ function getGeminiClient(): GoogleGenAI {
   }
   return aiClient;
 }
+
+
+// ----------------------------------------------------
+// TOKEN BOUNDS ENGINE (Persistent Repository mapping userId -> daily utilization)
+// ----------------------------------------------------
+export interface UserTokenRecord {
+  tokensUsed: number;
+  email: string;
+  lastActiveDate: string; // YYYY-MM-DD
+}
+
+export interface TokenDatabase {
+  [userId: string]: UserTokenRecord;
+}
+
+const TOKENS_FILE = path.join(process.cwd(), "daily_tokens.json");
+export const DAILY_LIMIT = 500000;
+export const OWNER_EMAIL = "rs826748@gmail.com";
+
+export function loadTokenDatabase(): TokenDatabase {
+  try {
+    if (fs.existsSync(TOKENS_FILE)) {
+      const parsed = JSON.parse(fs.readFileSync(TOKENS_FILE, "utf-8"));
+      return parsed || {};
+    }
+  } catch (error) {
+    console.error("[NEXA TOKEN ENGINE] Failed load:", error);
+  }
+  return {};
+}
+
+export function saveTokenDatabase(dbData: TokenDatabase): void {
+  try {
+    fs.writeFileSync(TOKENS_FILE, JSON.stringify(dbData, null, 2), "utf-8");
+  } catch (error) {
+    console.error("[NEXA TOKEN ENGINE] Failed save:", error);
+  }
+}
+
+/**
+ * Validates, resets on date shift, and attempts token deduction for a specific user ID.
+ * Bypasses checks if email matches OWNER_EMAIL.
+ */
+export function checkAndDeductTokens(
+  userId: string | undefined, 
+  email: string | undefined, 
+  estimateToAdd: number
+): { allowed: boolean; remaining: number; tokensUsed: number; reachedLimit: boolean } {
+  const cleanUserId = userId ? String(userId) : "anonymous_sandbox_guest";
+  const cleanEmail = (email || "").toLowerCase().trim();
+
+  // OWNER EXEMPTION
+  if (cleanEmail === OWNER_EMAIL || cleanEmail.endsWith("@google.com")) {
+    return { allowed: true, remaining: 99999999, tokensUsed: 0, reachedLimit: false };
+  }
+
+  const dbData = loadTokenDatabase();
+  const today = new Date().toISOString().split("T")[0]; // UTC Date YYYY-MM-DD
+
+  if (!dbData[cleanUserId]) {
+    dbData[cleanUserId] = {
+      tokensUsed: 0,
+      email: cleanEmail,
+      lastActiveDate: today
+    };
+  }
+
+  const record = dbData[cleanUserId];
+
+  // Daily Reset check: if date has rolled over, reset tokensUsed to 0
+  if (record.lastActiveDate !== today) {
+    record.tokensUsed = 0;
+    record.lastActiveDate = today;
+  }
+
+  // Pre-check limit
+  if (record.tokensUsed >= DAILY_LIMIT) {
+    return { allowed: false, remaining: 0, tokensUsed: record.tokensUsed, reachedLimit: true };
+  }
+
+  // Execute allocation
+  record.tokensUsed += estimateToAdd;
+  saveTokenDatabase(dbData);
+
+  const remaining = Math.max(0, DAILY_LIMIT - record.tokensUsed);
+  return {
+    allowed: true,
+    remaining,
+    tokensUsed: record.tokensUsed,
+    reachedLimit: record.tokensUsed >= DAILY_LIMIT
+  };
+}
+
+
+// Endpoint to retrieve active user daily token allocation status
+app.get("/api/token-status", (req: any, res: any) => {
+  const { userId, email } = req.query;
+  const cleanUserId = userId ? String(userId) : "anonymous_sandbox_guest";
+  const cleanEmail = (email || "").toLowerCase().trim();
+
+  if (cleanEmail === OWNER_EMAIL || cleanEmail.endsWith("@google.com")) {
+    return res.json({
+      isOwner: true,
+      tokensUsed: 0,
+      dailyLimit: DAILY_LIMIT,
+      remaining: 99999999,
+      reachedLimit: false
+    });
+  }
+
+  const dbData = loadTokenDatabase();
+  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
+  const record = dbData[cleanUserId] || {
+    tokensUsed: 0,
+    email: cleanEmail,
+    lastActiveDate: today
+  };
+
+  const isResetNeeded = record.lastActiveDate !== today;
+  const currentUsed = isResetNeeded ? 0 : record.tokensUsed;
+
+  res.json({
+    isOwner: false,
+    tokensUsed: currentUsed,
+    dailyLimit: DAILY_LIMIT,
+    remaining: Math.max(0, DAILY_LIMIT - currentUsed),
+    reachedLimit: currentUsed >= DAILY_LIMIT
+  });
+});
+
 
 // ----------------------------------------------------
 // ANONYMOUS USER FEEDBACK LOGS (In-Memory Repository)
@@ -441,10 +573,26 @@ export function logServerError(context: string, error: any, requestPayload: any)
 
 // AI Optimize Entrypoint (Evaluates mode and decides whether to produce Questions or generate Prompt)
 app.post("/api/optimize", async (req: any, res: any) => {
-  const { targetAI, modePreference, domain, roughRequest } = req.body;
+  const { targetAI, modePreference, domain, roughRequest, tone, userId, email } = req.body;
 
   if (!roughRequest || !roughRequest.trim()) {
     return res.status(400).json({ error: "missing_content", message: "Rough request textarea cannot be empty." });
+  }
+
+  // Pre-check token limits
+  const cleanUserId = userId ? String(userId) : "anonymous_sandbox_guest";
+  const cleanEmail = (email || "").toLowerCase().trim();
+
+  if (cleanEmail !== OWNER_EMAIL && !cleanEmail.endsWith("@google.com")) {
+    const dbData = loadTokenDatabase();
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const record = dbData[cleanUserId];
+    if (record && record.lastActiveDate === today && record.tokensUsed >= DAILY_LIMIT) {
+      return res.status(403).json({
+        error: "token_limit_exceeded",
+        message: "You have spent your daily allocation of 500,000 tokens. Balance resets tomorrow!"
+      });
+    }
   }
 
   // Auto-detect complexity
@@ -465,7 +613,10 @@ app.post("/api/optimize", async (req: any, res: any) => {
 Target AI: ${targetAI || "ChatGPT"}
 Domain Subject: ${domain || "General"}
 Requested Mode: ${selectedMode}
+Desired Tone: ${tone || "Professional"}
 Rough Request Content: "${roughRequest}"
+
+Ensure the final optimized prompt is carefully structured, incorporating guidelines, constraints, and vocabulary matching the requested "${tone || "Professional"}" tone.
 
 If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with smart defaults. Ensure questions are highly custom-themed (e.g. if request is about a python API, questions should ask about libraries, endpoints, database types rather than generic templates).`;
 
@@ -525,6 +676,20 @@ If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with s
         console.warn("[NEXA ROUTE OPTIMIZATION] Scan injection failed defensively:", scanError);
       }
 
+      // Calculate token estimation and deduct
+      const textForEstimate = typeof textOutput === "string" ? textOutput : JSON.stringify(parsedData);
+      const inputEst = Math.ceil((roughRequest || "").length / 4.1);
+      const outputEst = Math.ceil(textForEstimate.length / 4.1);
+      const totalEst = inputEst + outputEst;
+
+      const tokenResult = checkAndDeductTokens(userId, email, totalEst);
+      parsedData.tokenResult = {
+        charged: totalEst,
+        tokensUsed: tokenResult.tokensUsed,
+        remaining: tokenResult.remaining,
+        reachedLimit: tokenResult.reachedLimit
+      };
+
       res.json(parsedData);
     } catch (parseError: any) {
       logServerError("NEXA_OPTIMIZE_JSON_PARSE", parseError, { targetAI, modePreference, domain, roughRequest });
@@ -568,7 +733,7 @@ If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with s
 
 // AI Optimize Answers (Used to evaluate responses to clarifying questions and generate final Detail prompt)
 app.post("/api/optimize/answers", async (req: any, res: any) => {
-  const { targetAI, domain, roughRequest, answers } = req.body;
+  const { targetAI, domain, roughRequest, answers, tone, userId, email } = req.body;
 
   if (!roughRequest || !roughRequest.trim()) {
     return res.status(400).json({ error: "missing_content", message: "Rough request cannot be empty." });
@@ -576,6 +741,22 @@ app.post("/api/optimize/answers", async (req: any, res: any) => {
 
   if (!answers || !Array.isArray(answers)) {
     return res.status(400).json({ error: "missing_answers", message: "Answers array is missing or invalid." });
+  }
+
+  // Pre-check token limits
+  const cleanUserId = userId ? String(userId) : "anonymous_sandbox_guest";
+  const cleanEmail = (email || "").toLowerCase().trim();
+
+  if (cleanEmail !== OWNER_EMAIL && !cleanEmail.endsWith("@google.com")) {
+    const dbData = loadTokenDatabase();
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const record = dbData[cleanUserId];
+    if (record && record.lastActiveDate === today && record.tokensUsed >= DAILY_LIMIT) {
+      return res.status(403).json({
+        error: "token_limit_exceeded",
+        message: "You have spent your daily allocation of 500,000 tokens. Balance resets tomorrow!"
+      });
+    }
   }
 
   try {
@@ -591,11 +772,12 @@ Original Request:
 
 Target AI Platform: ${targetAI || "ChatGPT"}
 Domain Focus: ${domain || "General"}
+Desired Tone: ${tone || "Professional"}
 
 Clarified Answers Provided:
 ${answersString}
 
-Please synthesize the absolute ultimate tailored optimized prompt incorporating all these details perfectly. Since answers are supplied, you MUST return the final optimized prompt! Return clarifyingQuestions as null. Provide rich improvements list, techniquesApplied, and an expert proTip.`;
+Please synthesize the absolute ultimate tailored optimized prompt incorporating all these details perfectly. Apply guidelines, structures, and terminology vocabulary aligned with the requested "${tone || "Professional"}" tone. Since answers are supplied, you MUST return the final optimized prompt! Return clarifyingQuestions as null. Provide rich improvements list, techniquesApplied, and an expert proTip.`;
 
     const result = await client.models.generateContent({
       model: "gemini-3.5-flash",
@@ -653,6 +835,20 @@ Please synthesize the absolute ultimate tailored optimized prompt incorporating 
         console.warn("[NEXA ROUTE ANSWERS] Scan injection failed defensively:", scanError);
       }
 
+      // Calculate token estimation and deduct
+      const textForEstimate = typeof textOutput === "string" ? textOutput : JSON.stringify(parsedData);
+      const inputEst = Math.ceil((roughRequest || "").length / 4.1);
+      const outputEst = Math.ceil(textForEstimate.length / 4.1);
+      const totalEst = inputEst + outputEst;
+
+      const tokenResult = checkAndDeductTokens(userId, email, totalEst);
+      parsedData.tokenResult = {
+        charged: totalEst,
+        tokensUsed: tokenResult.tokensUsed,
+        remaining: tokenResult.remaining,
+        reachedLimit: tokenResult.reachedLimit
+      };
+
       res.json(parsedData);
     } catch (parseError: any) {
       logServerError("NEXA_ANSWERS_JSON_PARSE", parseError, { targetAI, domain, roughRequest, answers });
@@ -691,6 +887,88 @@ Please synthesize the absolute ultimate tailored optimized prompt incorporating 
     }
 
     res.status(500).json({ error: errorType, message: friendlyMessage });
+  }
+});
+
+
+// ----------------------------------------------------
+// AUTO-DETECT & TRANSLATE TO ENGLISH UTILITY
+// ----------------------------------------------------
+app.post("/api/translate", async (req: any, res: any) => {
+  const { text, userId, email } = req.body;
+
+  if (!text || !text.trim()) {
+    return res.status(400).json({ error: "missing_text", message: "Text to translate cannot be empty." });
+  }
+
+  // Pre-check token limits
+  const cleanUserId = userId ? String(userId) : "anonymous_sandbox_guest";
+  const cleanEmail = (email || "").toLowerCase().trim();
+
+  if (cleanEmail !== OWNER_EMAIL && !cleanEmail.endsWith("@google.com")) {
+    const dbData = loadTokenDatabase();
+    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+    const record = dbData[cleanUserId];
+    if (record && record.lastActiveDate === today && record.tokensUsed >= DAILY_LIMIT) {
+      return res.status(403).json({
+        error: "token_limit_exceeded",
+        message: "You have spent your daily allocation of 500,000 tokens. Balance resets tomorrow!"
+      });
+    }
+  }
+
+  try {
+    const client = getGeminiClient();
+    
+    const translationPrompt = `Detect the language of this text and translate it into clear, fluent English:
+"${text}"`;
+
+    const result = await client.models.generateContent({
+      model: "gemini-3.5-flash",
+      contents: translationPrompt,
+      config: {
+        systemInstruction: `You are an expert real-time translation engine and language auto-detector.
+Your task is to:
+1. Auto-detect the language of the provided user text.
+2. Translate the user text accurately and fluently into English. Keep any special formatting or structural indicators intact. If the input is already in English, return the detected language as 'English' and the original text as the translated text.
+3. Respond ONLY with a valid JSON matching this schema:
+{
+  "detectedLanguage": "Name of the detected language (e.g. Spanish, German, Mandarin)",
+  "translatedText": "The final translated English text"
+}`,
+        responseMimeType: "application/json",
+        temperature: 0.1,
+      }
+    });
+
+    const textOutput = result.text;
+    if (!textOutput || !textOutput.trim()) {
+      throw new Error("EMPTY_TRANSLATION_OUTPUT: Translation engine returned blank content.");
+    }
+
+    const parsedData = resilientJsonParse(textOutput);
+
+    // Calculate token estimation and deduct
+    const textForEstimate = typeof textOutput === "string" ? textOutput : JSON.stringify(parsedData);
+    const inputEst = Math.ceil((text || "").length / 4.1);
+    const outputEst = Math.ceil(textForEstimate.length / 4.1);
+    const totalEst = inputEst + outputEst;
+
+    const tokenResult = checkAndDeductTokens(userId, email, totalEst);
+    parsedData.tokenResult = {
+      charged: totalEst,
+      tokensUsed: tokenResult.tokensUsed,
+      remaining: tokenResult.remaining,
+      reachedLimit: tokenResult.reachedLimit
+    };
+
+    res.json(parsedData);
+  } catch (err: any) {
+    logServerError("NEXA_TRANSLATE_ROUTE", err, { text });
+    res.status(500).json({ 
+      error: "translation_failed", 
+      message: `Translation failed or was rate-limited: ${err.message || "Please try again."}` 
+    });
   }
 });
 

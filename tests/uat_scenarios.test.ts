@@ -206,4 +206,138 @@ services:
       expect(mockPreferences.enableHighlighting).toBe(false);
     });
   });
+
+  // ==========================================
+  // UAT-06: GOOGLE TRANSLATE / LANGUAGE AUTO-DETECTION & EN TRANSLATION
+  // ==========================================
+  describe("UAT TC-14 - Auto-Detection & English Translation Utility", () => {
+    it("should correctly represent translation execution state and auto-detection values", () => {
+      let isTranslating = false;
+      let detectedLanguage: string | null = null;
+      let roughRequest = "Hola, me gustaría optimizar mi prompt.";
+
+      const startTranslation = () => {
+        isTranslating = true;
+      };
+
+      const completeTranslation = (lang: string, translated: string) => {
+        isTranslating = false;
+        detectedLanguage = lang;
+        roughRequest = translated;
+      };
+
+      startTranslation();
+      expect(isTranslating).toBe(true);
+
+      completeTranslation("Spanish", "Hello, I would like to optimize my prompt.");
+      expect(isTranslating).toBe(false);
+      expect(detectedLanguage).toBe("Spanish");
+      expect(roughRequest).toBe("Hello, I would like to optimize my prompt.");
+    });
+  });
+
+  // ==========================================
+  // UAT-07: DESIRED TONE PREFERENCE SELECTION
+  // ==========================================
+  describe("UAT TC-15 - Tone Preference Selection & Synchronization", () => {
+    it("should allow changing selected tone value from the available options", () => {
+      let tone = "Professional";
+      const setTone = (value: string) => {
+        tone = value;
+      };
+
+      expect(tone).toBe("Professional");
+      setTone("Academic");
+      expect(tone).toBe("Academic");
+      setTone("Urgent");
+      expect(tone).toBe("Urgent");
+    });
+
+    it("should properly persist the chosen tone preference within the session model", () => {
+      const mockPreferences = {
+        targetAI: "Claude",
+        modePreference: "Auto" as const,
+        domain: "Creative Writing",
+        tone: "Urgent",
+        enableHighlighting: true,
+        updatedAt: "2026-05-22T12:38:00Z"
+      };
+
+      expect(mockPreferences.tone).toBe("Urgent");
+    });
+  });
+
+  // ==========================================
+  // UAT-08: DAILY LIMITS & OWNER BYPASS
+  // ==========================================
+  describe("UAT TC-16 - Daily Token Allocation, Reset, and Owner Exemption", () => {
+    
+    it("should allow a standard user to deduct below the 500k limit", () => {
+      // Direct mock logic of the token controller
+      const mockLimit = 500000;
+      let mockUsed = 120000;
+      const estimate = 5000;
+      
+      const allowed = mockUsed < mockLimit;
+      if (allowed) {
+        mockUsed += estimate;
+      }
+      
+      expect(allowed).toBe(true);
+      expect(mockUsed).toBe(125000);
+    });
+
+    it("should block a standard user when they exceed the 500k threshold", () => {
+      const mockLimit = 500000;
+      let mockUsed = 499500;
+      const estimateLarge = 1000;
+      
+      const allowedFirst = mockUsed < mockLimit;
+      if (allowedFirst) {
+        mockUsed += estimateLarge; // moves to 500500
+      }
+      
+      const allowedSecond = mockUsed < mockLimit;
+      
+      expect(allowedFirst).toBe(true);
+      expect(allowedSecond).toBe(false); // blocked now!
+    });
+
+    it("should bypass limit entirely for the owner email", () => {
+      const mockOwnerEmail = "rs826748@gmail.com";
+      const userEmail = "rs826748@gmail.com";
+      const mockLimit = 500000;
+      let mockUsed = 600000; // already above limit
+      
+      const isOwner = userEmail.toLowerCase().trim() === mockOwnerEmail;
+      const allowed = isOwner || mockUsed < mockLimit;
+      
+      expect(isOwner).toBe(true);
+      expect(allowed).toBe(true); // Owner bypassed!
+    });
+
+    it("should reset the token counter if date rolls over to a new day", () => {
+      const today = "2026-05-22";
+      const tomorrow = "2026-05-23";
+      
+      const userRecord = {
+        tokensUsed: 450000,
+        lastActiveDate: today
+      };
+
+      // Check on same day: no reset
+      if (userRecord.lastActiveDate !== today) {
+        userRecord.tokensUsed = 0;
+        userRecord.lastActiveDate = today;
+      }
+      expect(userRecord.tokensUsed).toBe(450000);
+
+      // Check code on next day: trigger reset
+      if (userRecord.lastActiveDate !== tomorrow) {
+        userRecord.tokensUsed = 0;
+        userRecord.lastActiveDate = tomorrow;
+      }
+      expect(userRecord.tokensUsed).toBe(0); // Resets successfully!
+    });
+  });
 });

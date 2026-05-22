@@ -40,6 +40,7 @@ export interface HistoryItem {
   modeUsed?: "BASIC" | "DETAIL" | null;
   improvements?: string[] | null;
   techniquesApplied?: string[] | null;
+  tone?: string | null;
 }
 
 export interface UserPreferences {
@@ -48,5 +49,6 @@ export interface UserPreferences {
   domain: string;
   updatedAt: string;
   enableHighlighting?: boolean;
+  tone?: string;
 }
 

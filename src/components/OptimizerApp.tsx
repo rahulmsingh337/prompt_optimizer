@@ -50,7 +50,8 @@ import {
   Mic,
   MicOff,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Languages
 } from "lucide-react";
 import { User as UserType, OptimizedResponse, QueryState, HistoryItem, UserPreferences } from "../types";
 import SwimlaneWorkflow from "./SwimlaneWorkflow";
@@ -162,6 +163,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
   const [targetAI, setTargetAI] = useState<string>("ChatGPT");
   const [modePreference, setModePreference] = useState<"Auto" | "BASIC" | "DETAIL">("Auto");
   const [domain, setDomain] = useState<string>("General");
+  const [tone, setTone] = useState<string>("Professional");
   const [roughRequest, setRoughRequest] = useState<string>("");
 
   // Workflow dynamic states
@@ -217,6 +219,46 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
   const [isListening, setIsListening] = useState<boolean>(false);
   const [speechError, setSpeechError] = useState<string | null>(null);
   const recognitionRef = useRef<any>(null);
+
+  // Token status tracker
+  const [tokenStatus, setTokenStatus] = useState<{
+    isOwner: boolean;
+    tokensUsed: number;
+    dailyLimit: number;
+    remaining: number;
+    reachedLimit: boolean;
+  } | null>(null);
+
+  const fetchTokenStatus = async () => {
+    try {
+      const res = await fetch(`/api/token-status?userId=${user.id}&email=${encodeURIComponent(user.login || "")}`);
+      if (res.ok) {
+        const data = await res.json();
+        setTokenStatus(data);
+      }
+    } catch (err) {
+      console.error("Failed to retrieve token status:", err);
+    }
+  };
+
+  const updateTokenStatusFromData = (data: any) => {
+    if (data && data.tokenResult) {
+      setTokenStatus({
+        isOwner: data.tokenResult.isOwner || (user.login || "").toLowerCase().trim() === "rs826748@gmail.com",
+        tokensUsed: data.tokenResult.tokensUsed,
+        dailyLimit: 500000,
+        remaining: data.tokenResult.remaining,
+        reachedLimit: data.tokenResult.reachedLimit
+      });
+    } else {
+      fetchTokenStatus();
+    }
+  };
+
+  // Auto-translation states
+  const [isTranslating, setIsTranslating] = useState<boolean>(false);
+  const [translationError, setTranslationError] = useState<string | null>(null);
+  const [detectedLanguage, setDetectedLanguage] = useState<string | null>(null);
 
   // Full Screen State for Optimized Prompt Area
   const [isFullScreenPrompt, setIsFullScreenPrompt] = useState<boolean>(false);
@@ -331,6 +373,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
         if (data.modePreference) setModePreference(data.modePreference);
         if (data.domain) setDomain(data.domain);
         if (data.enableHighlighting !== undefined) setEnableHighlighting(data.enableHighlighting);
+        if (data.tone) setTone(data.tone);
       }
     } catch (e) {
       console.error("Failed to load user preferences: ", e);
@@ -346,6 +389,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
       modePreference,
       domain,
       enableHighlighting,
+      tone,
       updatedAt: new Date().toISOString()
     };
     try {
@@ -371,6 +415,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
       proTip: responseData.proTip || null,
       domain: domain || "General",
       targetAI: targetAI || "ChatGPT",
+      tone: tone || "Professional",
       timestamp: new Date().toISOString(),
       modeUsed: responseData.modeUsed || "BASIC",
       improvements: responseData.improvements || null,
@@ -421,6 +466,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
     });
 
     loadUserPreferences();
+    fetchTokenStatus();
 
     return () => unsubscribe();
   }, [user.id]);
@@ -511,6 +557,53 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
     setErrorMessage(null);
     setQuestionAnswers({});
     setIsLoading(false);
+    setTranslationError(null);
+    setDetectedLanguage(null);
+  };
+
+  // Auto-translate rough request text to English using server-side Gemini Translate
+  const handleAutoTranslateToEnglish = async () => {
+    if (!roughRequest.trim()) return;
+
+    setIsTranslating(true);
+    setTranslationError(null);
+    setDetectedLanguage(null);
+
+    try {
+      const response = await fetch("/api/translate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ 
+          text: roughRequest,
+          userId: user.id || "anonymous_sandbox_guest",
+          email: user.login || ""
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to complete translation.");
+      }
+
+      const data = await response.json();
+      if (data.translatedText) {
+        setRoughRequest(data.translatedText);
+        setDetectedLanguage(data.detectedLanguage || "Unspecified");
+        // Update user token limits client-side
+        updateTokenStatusFromData(data);
+        // Clear detection status after 5 seconds to keep the interface tidy
+        setTimeout(() => setDetectedLanguage(null), 6000);
+      } else {
+        throw new Error("Translation synthesis returned empty text outcome.");
+      }
+    } catch (err: any) {
+      console.error("Translation error: ", err);
+      setTranslationError(err.message || "Could not translate text. Please verify service status.");
+    } finally {
+      setIsTranslating(false);
+    }
   };
 
   // Standard prompt execution
@@ -535,7 +628,10 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
           targetAI,
           modePreference,
           domain,
-          roughRequest
+          roughRequest,
+          tone,
+          userId: user.id || "anonymous_sandbox_guest",
+          email: user.login || ""
         })
       });
 
@@ -546,6 +642,8 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
 
       const data = await res.json();
       setResponse(data);
+      // Update token limits
+      updateTokenStatusFromData(data);
       if (data && data.optimizedPrompt) {
         saveToHistory(roughRequest, data);
       }
@@ -578,7 +676,10 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
           targetAI,
           domain,
           roughRequest,
-          answers: answersPayload
+          answers: answersPayload,
+          tone,
+          userId: user.id || "anonymous_sandbox_guest",
+          email: user.login || ""
         })
       });
 
@@ -589,6 +690,8 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
 
       const data = await res.json();
       setResponse(data);
+      // Update token limits
+      updateTokenStatusFromData(data);
       if (data && data.optimizedPrompt) {
         saveToHistory(roughRequest, data);
       }
@@ -648,6 +751,61 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
             <Network className="w-3.5 h-3.5" />
             <span>Workflow</span>
           </button>
+
+          {/* Token usage widget */}
+          {tokenStatus && (
+            <div 
+              className="hidden sm:flex items-center gap-2 bg-slate-950 p-1.5 px-3 rounded-xl border border-slate-900 cursor-pointer select-none relative group"
+              title="NEXA Daily AI Token Limit"
+            >
+              <div className="flex flex-col text-right">
+                <span className="text-[10px] font-mono font-semibold text-slate-300">
+                  {tokenStatus.isOwner ? (
+                    <span className="text-amber-400 font-bold flex items-center gap-1">
+                      <span>∞</span> Owner Mode
+                    </span>
+                  ) : (
+                    <span>{tokenStatus.remaining.toLocaleString()} left</span>
+                  )}
+                </span>
+                <span className="text-[8px] font-mono text-slate-500 uppercase">
+                  {tokenStatus.isOwner ? "No limit active" : `Used: ${Math.round(tokenStatus.tokensUsed / 1000)}k / 500k`}
+                </span>
+              </div>
+              <div className="relative">
+                <span className={`relative flex h-2 w-2 rounded-full ${tokenStatus.reachedLimit ? "bg-red-500" : tokenStatus.isOwner ? "bg-amber-400" : "bg-emerald-500"}`}>
+                  {!tokenStatus.reachedLimit && !tokenStatus.isOwner && (
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  )}
+                </span>
+              </div>
+
+              {/* Tooltip detail block */}
+              <div className="opacity-0 group-hover:opacity-100 pointer-events-none absolute right-2 top-11 p-3 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl z-50 w-64 space-y-2 transition-all duration-300 text-left">
+                <div className="text-xs font-bold text-slate-200">Daily Token Allocation Status</div>
+                <p className="text-[10px] text-slate-400 leading-relaxed uppercase font-sans normal-case">
+                  Each NEXA member has a daily traffic allotment of 500,000 tokens (approx. 2 million characters of input and output) to prevent abuse.
+                </p>
+                {!tokenStatus.isOwner && (
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono">
+                      <span className="text-slate-500">Consumed:</span>
+                      <span className="text-slate-300 font-bold">{tokenStatus.tokensUsed.toLocaleString()} / 500,000</span>
+                    </div>
+                    <div className="w-full bg-slate-900 rounded-full h-1">
+                      <div 
+                        className={`h-1 rounded-full ${tokenStatus.reachedLimit ? "bg-red-500" : "bg-emerald-500"}`} 
+                        style={{ width: `${Math.min(100, (tokenStatus.tokensUsed / 500000) * 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                )}
+                <div className="text-[9px] font-mono text-indigo-400 text-center border-t border-slate-900 pt-1.5 mt-1">
+                  Resets automatically every day
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex items-center gap-2 bg-slate-950 p-1.5 px-3 rounded-xl border border-slate-900 shrink-0">
             {user.avatar_url ? (
@@ -742,6 +900,25 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
               </select>
             </div>
 
+            {/* Desired Prompt Tone */}
+            <div>
+              <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-500 mb-1.5 font-bold">Desired Prompt Tone</label>
+              <select
+                value={tone}
+                onChange={(e) => setTone(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-850 rounded-lg p-2.5 text-xs text-slate-200 focus:border-sky-500 focus:outline-none cursor-pointer"
+              >
+                <option value="Professional">Professional (Corporate, Objective, Clear)</option>
+                <option value="Casual">Casual (Friendly, Conversational, Relatable)</option>
+                <option value="Academic">Academic (Rigorous, Formal, Analytical)</option>
+                <option value="Urgent">Urgent (Action-Oriented, High-Priority, Direct)</option>
+                <option value="Creative">Creative (Expressive, Narrative, Inspiring)</option>
+                <option value="Direct">Direct & Concise (Brutally Short, High-Signal)</option>
+                <option value="Enthusiastic">Enthusiastic (High-Energy, Excitable, Passionate)</option>
+                <option value="Empathetic">Empathetic (Compassionate, Patient, Supporitive)</option>
+              </select>
+            </div>
+
             {/* Practical Preset Changers */}
             <div>
               <span className="block text-[10px] font-mono uppercase tracking-wider text-slate-500 mb-2 font-bold">Interactive Domain Presets</span>
@@ -814,6 +991,22 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                       </>
                     )}
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={handleAutoTranslateToEnglish}
+                    disabled={isTranslating || !roughRequest.trim()}
+                    className={`flex items-center gap-1.5 text-[10px] font-mono px-2 py-0.5 rounded border transition-all cursor-pointer ${
+                      isTranslating 
+                        ? "bg-sky-500/10 text-sky-400 border-sky-500/30 shadow-[0_0_10px_rgba(14,165,233,0.25)] animate-pulse" 
+                        : "bg-slate-950/80 text-slate-400 border-slate-900 hover:text-sky-400 hover:border-slate-800 disabled:opacity-40 disabled:hover:text-slate-400 disabled:hover:border-slate-900"
+                    }`}
+                    title="Detect language and translate text to English instantly"
+                  >
+                    <Languages className={`w-3 h-3 ${isTranslating ? "text-sky-400 animate-spin" : "text-slate-400"}`} />
+                    <span>{isTranslating ? "Translating..." : "Translate to English"}</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={handleReset}
@@ -840,6 +1033,38 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                 </div>
               )}
 
+              {translationError && (
+                <div className="mb-2 p-2 rounded-lg bg-red-950/30 border border-red-500/20 text-[10px] font-mono text-red-400 flex items-start gap-1.5 text-left">
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <span>{translationError}</span>
+                    <button 
+                      type="button"
+                      onClick={() => setTranslationError(null)} 
+                      className="ml-2 underline text-slate-400 hover:text-slate-200 cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {detectedLanguage && (
+                <div className="mb-2 p-2 rounded-lg bg-emerald-950/35 border border-emerald-500/25 text-[10px] font-mono text-emerald-400 flex items-start gap-1.5 text-left">
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <span>Language Auto-Detected & Translated: <strong className="text-emerald-300 uppercase">{detectedLanguage}</strong> ➔ ENGLISH.</span>
+                    <button 
+                      type="button"
+                      onClick={() => setDetectedLanguage(null)} 
+                      className="ml-2 underline text-slate-400 hover:text-slate-200 cursor-pointer"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <textarea
                 value={roughRequest}
                 onChange={(e) => setRoughRequest(e.target.value)}
@@ -858,6 +1083,19 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                 </div>
               </div>
             </div>
+
+            {/* Token limit exceeded warning banner */}
+            {tokenStatus?.reachedLimit && !tokenStatus?.isOwner && (
+              <div className="p-3.5 rounded-lg bg-red-950/40 border border-red-500/20 text-xs text-red-400 leading-normal flex items-start gap-2.5 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.15)] text-left">
+                <AlertTriangle className="w-4 h-4 text-red-505 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <div className="font-bold mb-0.5">Daily Token Allocation Exhausted</div>
+                  <span className="text-[11px] text-slate-300">
+                    You have spent your daily allocation of 500,000 tokens. The token quota resets automatically every day.
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Error notifications */}
             {errorMessage && (
@@ -880,7 +1118,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
               <button
                 type="button"
                 onClick={handleOptimize}
-                disabled={isLoading || !roughRequest.trim()}
+                disabled={isLoading || !roughRequest.trim() || (tokenStatus?.reachedLimit && !tokenStatus?.isOwner)}
                 className="py-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 font-bold text-xs text-white tracking-widest uppercase shadow shadow-sky-500/10 transition-colors disabled:opacity-50 cursor-pointer flex items-center justify-center gap-1.5"
               >
                 {isLoading ? (
@@ -915,7 +1153,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
               <div className="text-left">
                 <span className="text-[9px] font-mono text-slate-500 block uppercase font-bold">LOCKED DEFAULTS</span>
                 <span className="text-[11px] font-semibold text-slate-300">
-                  {preferences ? `${preferences.targetAI} • ${preferences.modePreference} • ${preferences.domain}${preferences.enableHighlighting !== undefined ? ` • Highlighting: ${preferences.enableHighlighting ? "On" : "Off"}` : ""}` : "No defaults locked"}
+                  {preferences ? `${preferences.targetAI} • ${preferences.modePreference} • ${preferences.domain}${preferences.tone ? ` • ${preferences.tone}` : ""}${preferences.enableHighlighting !== undefined ? ` • Highlighting: ${preferences.enableHighlighting ? "On" : "Off"}` : ""}` : "No defaults locked"}
                 </span>
               </div>
               
@@ -1042,6 +1280,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                             onClick={() => {
                               setTargetAI(item.targetAI || "ChatGPT");
                               setDomain(item.domain || "General");
+                              setTone(item.tone || "Professional");
                               setRoughRequest(item.roughRequest);
                               setOriginalRequestForDiff(item.roughRequest);
                               setResponse({
@@ -1172,8 +1411,9 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                 </button>
                 <button
                   type="button"
+                  disabled={tokenStatus?.reachedLimit && !tokenStatus?.isOwner}
                   onClick={handleAnswerSubmit}
-                  className="px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-extrabold text-xs tracking-wider uppercase transition-colors flex items-center gap-1.5 cursor-pointer"
+                  className="px-6 py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-extrabold text-xs tracking-wider uppercase transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                 >
                   Compile Final Prompt <ArrowRight className="w-4 h-4" />
                 </button>
