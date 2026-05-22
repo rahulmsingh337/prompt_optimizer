@@ -47,5 +47,6 @@ export interface UserPreferences {
   modePreference: "Auto" | "BASIC" | "DETAIL";
   domain: string;
   updatedAt: string;
+  enableHighlighting?: boolean;
 }
 

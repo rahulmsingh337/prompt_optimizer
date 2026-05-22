@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Prism from "prismjs";
 import "prismjs/themes/prism-tomorrow.css";
 import "prismjs/components/prism-javascript";
@@ -16,7 +16,8 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip
+  Tooltip,
+  Brush
 } from "recharts";
 
 import { 
@@ -45,7 +46,11 @@ import {
   Save,
   Trash2,
   GitCompare,
-  Cpu
+  Cpu,
+  Mic,
+  MicOff,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import { User as UserType, OptimizedResponse, QueryState, HistoryItem, UserPreferences } from "../types";
 import SwimlaneWorkflow from "./SwimlaneWorkflow";
@@ -113,7 +118,7 @@ function computeWordDiff(oldText: string, newText: string): DiffChunk[] {
   return result;
 }
 
-function detectLanguage(text: string): string {
+export function detectLanguage(text: string): string {
   if (!text) return "markdown";
   const trimmed = text.trim();
   if ((trimmed.startsWith("{") && trimmed.endsWith("}")) || (trimmed.startsWith("[") && trimmed.endsWith("]"))) {
@@ -204,8 +209,115 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
   const [isSavingPrefs, setIsSavingPrefs] = useState<boolean>(false);
   const [prefSaveSuccess, setPrefSaveSuccess] = useState<boolean>(false);
-  const [searchHistoryQuery, setSearchHistoryQuery] = useState<string>("");
+  const [searchHistoryQuery, setSearchHistoryQuery] = useState<string>(window.location.search.includes("search=") ? new URLSearchParams(window.location.search).get("search") || "" : "");
+  const [selectedChartPoint, setSelectedChartPoint] = useState<any | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
+
+  // Web Speech API states for prompt dictation
+  const [isListening, setIsListening] = useState<boolean>(false);
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const recognitionRef = useRef<any>(null);
+
+  // Full Screen State for Optimized Prompt Area
+  const [isFullScreenPrompt, setIsFullScreenPrompt] = useState<boolean>(false);
+
+  // Syntax highlighting state preference
+  const [enableHighlighting, setEnableHighlighting] = useState<boolean>(true);
+
+  // Esc key down event listener to close full screen focused prompt mode
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setIsFullScreenPrompt(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.abort();
+      }
+    };
+  }, []);
+
+  const startSpeechRecognition = () => {
+    setSpeechError(null);
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      setSpeechError("Web Speech API is not supported in this browser. Please try Chrome, Edge, or Safari.");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.interimResults = false;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onresult = (event: any) => {
+        const resultIndex = event.resultIndex;
+        const transcript = event.results[resultIndex][0].transcript;
+        if (transcript) {
+          setRoughRequest((prev) => {
+            const trimmed = prev.trim();
+            return trimmed ? `${trimmed} ${transcript.trim()}` : transcript.trim();
+          });
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        if (event.error === "not-allowed") {
+          setSpeechError("Microphone access denied. Please verify your browser/iframe permission settings.");
+        } else if (event.error === "no-speech") {
+          // Benign error, can ignore
+        } else {
+          setSpeechError(`Speech error: ${event.error}`);
+        }
+        setIsListening(false);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognitionRef.current = recognition;
+      recognition.start();
+    } catch (e: any) {
+      console.error("Failed to start speech recognition:", e);
+      setSpeechError(e.message || "Failed to initialize microphone.");
+      setIsListening(false);
+    }
+  };
+
+  const stopSpeechRecognition = () => {
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch (err) {
+        // Safe check
+      }
+    }
+    setIsListening(false);
+  };
+
+  const toggleSpeechRecognition = () => {
+    if (isListening) {
+      stopSpeechRecognition();
+    } else {
+      startSpeechRecognition();
+    }
+  };
 
   // Load preferences across sessions
   const loadUserPreferences = async () => {
@@ -218,6 +330,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
         if (data.targetAI) setTargetAI(data.targetAI);
         if (data.modePreference) setModePreference(data.modePreference);
         if (data.domain) setDomain(data.domain);
+        if (data.enableHighlighting !== undefined) setEnableHighlighting(data.enableHighlighting);
       }
     } catch (e) {
       console.error("Failed to load user preferences: ", e);
@@ -232,6 +345,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
       targetAI,
       modePreference,
       domain,
+      enableHighlighting,
       updatedAt: new Date().toISOString()
     };
     try {
@@ -674,22 +788,75 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
 
             {/* Original prompt text */}
             <div>
-              <div className="flex items-center justify-between mb-1.5">
+              <div className="flex items-center justify-between mb-1.5 flex-wrap gap-2">
                 <label className="block text-[10px] font-mono uppercase tracking-wider text-slate-500 font-bold">Original Rough Prompt</label>
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="text-[10px] font-mono text-slate-500 hover:text-red-400 cursor-pointer transition-colors"
-                >
-                  Clear Workspace
-                </button>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={toggleSpeechRecognition}
+                    className={`flex items-center gap-1.5 text-[10px] font-mono px-2 py-0.5 rounded border transition-all cursor-pointer ${
+                      isListening 
+                        ? "bg-red-500/10 text-red-400 border-red-500/35 shadow-[0_0_10px_rgba(239,68,68,0.25)] animate-pulse" 
+                        : "bg-slate-950/80 text-slate-400 border-slate-900 hover:text-sky-400 hover:border-slate-800"
+                    }`}
+                    title={isListening ? "Stop voice dictation" : "Dictate your prompt via microphone"}
+                  >
+                    {isListening ? (
+                      <>
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-450 animate-ping"></span>
+                        <Mic className="w-3 h-3 text-red-400" />
+                        <span className="font-bold text-red-450">Stop Voice</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mic className="w-3 h-3 text-slate-400 group-hover:text-sky-400" />
+                        <span>Dictate</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleReset}
+                    className="text-[10px] font-mono text-slate-500 hover:text-red-400 cursor-pointer transition-colors"
+                  >
+                    Clear Workspace
+                  </button>
+                </div>
               </div>
+
+              {speechError && (
+                <div className="mb-2 p-2 rounded-lg bg-red-950/30 border border-red-500/20 text-[10px] font-mono text-red-400 flex items-start gap-1.5">
+                  <AlertTriangle className="w-3.5 h-3.5 text-red-500 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <span>{speechError}</span>
+                    <button 
+                      type="button"
+                      onClick={() => setSpeechError(null)} 
+                      className="ml-2 underline text-slate-400 hover:text-slate-200"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
+
               <textarea
                 value={roughRequest}
                 onChange={(e) => setRoughRequest(e.target.value)}
                 placeholder="Share your rough idea, tasks, or list here..."
                 className="w-full h-40 bg-[#0c1222]/35 border border-slate-850/60 rounded-lg p-3 text-xs text-slate-200 placeholder-slate-600 resize-none focus:border-sky-500 focus:outline-none leading-relaxed font-sans backdrop-blur-sm"
               />
+              <div className="flex flex-wrap items-center justify-between mt-1.5 px-1 text-[10px] font-mono text-slate-500 gap-2">
+                <div className="flex items-center gap-2.5">
+                  <span>Chars: <strong className="text-slate-300">{(roughRequest || "").length}</strong></span>
+                  <span>•</span>
+                  <span>Words: <strong className="text-slate-300">{(roughRequest || "").trim() ? (roughRequest || "").trim().split(/\s+/).length : 0}</strong></span>
+                </div>
+                <div className="flex items-center gap-1.5 bg-sky-950/40 border border-sky-950/60 px-2 py-0.5 rounded text-sky-400">
+                  <Cpu className="w-2.5 h-2.5 shrink-0" />
+                  <span>Est. Tokens: <strong className="text-sky-300 font-extrabold">{Math.ceil((roughRequest || "").length / 4.1)}</strong></span>
+                </div>
+              </div>
             </div>
 
             {/* Error notifications */}
@@ -748,7 +915,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
               <div className="text-left">
                 <span className="text-[9px] font-mono text-slate-500 block uppercase font-bold">LOCKED DEFAULTS</span>
                 <span className="text-[11px] font-semibold text-slate-300">
-                  {preferences ? `${preferences.targetAI} • ${preferences.modePreference} • ${preferences.domain}` : "No defaults locked"}
+                  {preferences ? `${preferences.targetAI} • ${preferences.modePreference} • ${preferences.domain}${preferences.enableHighlighting !== undefined ? ` • Highlighting: ${preferences.enableHighlighting ? "On" : "Off"}` : ""}` : "No defaults locked"}
                 </span>
               </div>
               
@@ -770,6 +937,33 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                   </>
                 )}
               </button>
+            </div>
+
+            <div className="flex flex-col gap-3 pt-2 border-t border-slate-900/50 mt-1">
+              <div className="flex items-center justify-between">
+                <div className="text-left">
+                  <span className="text-[10px] font-mono font-bold text-slate-400 block uppercase tracking-wider">Syntax Highlighting Colors</span>
+                  <p className="text-[9px] text-slate-500 font-sans leading-none mt-0.5">Render prompt outputs with syntax color styles. Disable for a clean, plain text view.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono text-slate-450 uppercase font-bold">{enableHighlighting ? "Enabled" : "Disabled (Plain)"}</span>
+                  <button
+                    type="button"
+                    onClick={() => setEnableHighlighting(!enableHighlighting)}
+                    className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      enableHighlighting ? "bg-sky-500" : "bg-slate-800"
+                    }`}
+                    title="Toggle syntax highlighting on or off"
+                    id="toggle-syntax-highlighting"
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        enableHighlighting ? "translate-x-4" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -828,13 +1022,18 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                       className="p-3 rounded-xl bg-slate-950/30 hover:bg-[#0c1222]/50 border border-slate-900/50 hover:border-slate-800 transition-all flex flex-col gap-1.5 relative group"
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="text-[9px] font-mono bg-indigo-500/15 text-indigo-400 px-1.5 py-0.5 rounded font-bold">
                             {item.targetAI || "Other"}
                           </span>
                           <span className="text-[9px] font-mono text-slate-500">•</span>
                           <span className="text-[9px] font-mono text-slate-400 font-bold">
                             {item.domain || "General"}
+                          </span>
+                          <span className="text-[9px] font-mono text-slate-500">•</span>
+                          <span className="text-[9px] font-mono bg-sky-500/10 text-sky-400 border border-sky-500/15 px-1.5 py-0.5 rounded flex items-center gap-1">
+                            <Cpu className="w-2.5 h-2.5 shrink-0" />
+                            {Math.ceil((item.optimizedPrompt || "").length / 4.1)} tkns
                           </span>
                         </div>
                         <div className="flex items-center gap-1 shrink-0">
@@ -998,6 +1197,15 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 select-all">Format: {response.modeUsed} || {targetAI}</span>
                   <button
                     type="button"
+                    onClick={() => setIsFullScreenPrompt(true)}
+                    className="flex items-center gap-1 text-[10px] font-mono px-2.5 py-1 rounded bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/20 cursor-pointer font-bold transition-all select-none"
+                    title="Enable Full Screen / Focus view"
+                  >
+                    <Maximize2 className="w-3.5 h-3.5" />
+                    <span>Full Screen</span>
+                  </button>
+                  <button
+                    type="button"
                     onClick={() => setResponse(null)}
                     className="text-[10px] font-mono px-2 py-0.5 text-slate-500 hover:text-white transition-colors cursor-pointer"
                   >
@@ -1008,8 +1216,19 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
 
               {/* Your Optimized Prompt Box or Side-by-Side Comparison */}
               <div>
-                <div className="flex items-center justify-between border-b border-slate-900/80 pb-2 mb-4">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-extrabold block">Response Output Format</span>
+                <div className="flex items-center justify-between border-b border-slate-900/80 pb-2 mb-4 flex-wrap gap-2">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-extrabold block">Response Output Format</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsFullScreenPrompt(true)}
+                      className="flex items-center gap-1 text-[9px] font-mono px-2 py-0.5 rounded-md bg-slate-900 hover:bg-slate-850 text-slate-450 hover:text-white border border-slate-800 transition-all cursor-pointer font-bold select-none"
+                      title="Maximize prompt display"
+                    >
+                      <Maximize2 className="w-3 h-3 text-sky-400 animate-pulse" />
+                      <span>Full Screen Mode</span>
+                    </button>
+                  </div>
                   <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-900 shadow-inner">
                     <button
                       type="button"
@@ -1042,6 +1261,10 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-extrabold block">Your Optimized Prompt:</span>
+                        <div className="flex items-center gap-1 bg-sky-950/40 border border-sky-500/20 px-2 py-0.5 rounded-lg text-sky-400 font-mono text-[9px]">
+                          <Cpu className="w-2.5 h-2.5 text-sky-450 animate-pulse shrink-0" />
+                          <span>Estimated Tokens: <strong className="text-sky-300 font-extrabold">{Math.ceil((response.optimizedPrompt || "").length / 4.1)}</strong></span>
+                        </div>
                         <div className="flex items-center gap-1 bg-slate-950 px-2 py-0.5 rounded-lg border border-slate-900">
                           <span className="text-[8px] font-mono text-slate-500 uppercase select-none font-bold">Syntax:</span>
                           <select
@@ -1077,21 +1300,27 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                       </button>
                     </div>
                     <div className="relative group/prompt">
-                      <pre className={`language-${highlightLanguage} p-4 pr-12 rounded-xl bg-[#030610]/40 border border-slate-950/50 text-xs text-slate-200 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-72 select-all select-none backdrop-blur-sm`}>
-                        <code
-                          className={`language-${highlightLanguage}`}
-                          dangerouslySetInnerHTML={{
-                            __html: (() => {
-                              const code = response.optimizedPrompt || "";
-                              const grammar = Prism.languages[highlightLanguage];
-                              if (grammar) {
-                                return Prism.highlight(code, grammar, highlightLanguage);
-                              }
-                              return Prism.highlight(code, Prism.languages.markdown || Prism.languages.markup, "markdown");
-                            })()
-                          }}
-                        />
-                      </pre>
+                      {enableHighlighting ? (
+                        <pre className={`language-${highlightLanguage} p-4 pr-12 rounded-xl bg-[#030610]/40 border border-slate-950/50 text-xs text-slate-200 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-72 select-all select-none backdrop-blur-sm`}>
+                          <code
+                            className={`language-${highlightLanguage}`}
+                            dangerouslySetInnerHTML={{
+                              __html: (() => {
+                                const code = response.optimizedPrompt || "";
+                                const grammar = Prism.languages[highlightLanguage];
+                                if (grammar) {
+                                  return Prism.highlight(code, grammar, highlightLanguage);
+                                }
+                                return Prism.highlight(code, Prism.languages.markdown || Prism.languages.markup, "markdown");
+                              })()
+                            }}
+                          />
+                        </pre>
+                      ) : (
+                        <pre className="p-4 pr-12 rounded-xl bg-[#030610]/40 border border-slate-950/50 text-xs text-slate-200 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-72 select-all select-none backdrop-blur-sm font-sans">
+                          <code className="text-slate-200">{response.optimizedPrompt || ""}</code>
+                        </pre>
+                      )}
                       <button
                         type="button"
                         onClick={() => handleCopy(response.optimizedPrompt || "")}
@@ -1115,7 +1344,10 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                       <div className="flex flex-col rounded-xl bg-[#030610]/20 border border-slate-900/60 overflow-hidden text-xs">
                         <div className="bg-red-950/20 px-3 py-2 border-b border-red-950/40 flex items-center justify-between text-[10px] font-mono uppercase tracking-wider font-extrabold text-red-400">
                           <span>1. Original Input</span>
-                          <span>{originalRequestForDiff ? originalRequestForDiff.length : 0} Chars</span>
+                          <div className="flex items-center gap-2">
+                            <span className="bg-red-500/10 px-1.5 py-0.5 rounded text-[9px] border border-red-500/15">{originalRequestForDiff ? Math.ceil(originalRequestForDiff.length / 4.1) : 0} Tokens</span>
+                            <span>{originalRequestForDiff ? originalRequestForDiff.length : 0} Chars</span>
+                          </div>
                         </div>
                         
                         <div className="p-4 overflow-y-auto max-h-72 min-h-[160px] whitespace-pre-wrap leading-relaxed font-sans text-slate-400">
@@ -1144,7 +1376,10 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                       <div className="flex flex-col rounded-xl bg-[#030610]/20 border border-slate-900/60 overflow-hidden text-xs relative group/diff-pane">
                         <div className="bg-emerald-950/20 px-3 py-2 border-b border-emerald-950/40 flex items-center justify-between text-[10px] font-mono uppercase tracking-wider font-extrabold text-emerald-400">
                           <span>2. Optimized Output</span>
-                          <span>{response.optimizedPrompt ? response.optimizedPrompt.length : 0} Chars</span>
+                          <div className="flex items-center gap-2">
+                            <span className="bg-emerald-500/10 px-1.5 py-0.5 rounded text-[9px] border border-emerald-550/15">{response.optimizedPrompt ? Math.ceil(response.optimizedPrompt.length / 4.1) : 0} Tokens</span>
+                            <span>{response.optimizedPrompt ? response.optimizedPrompt.length : 0} Chars</span>
+                          </div>
                         </div>
                         
                         <div className="p-4 overflow-y-auto max-h-72 min-h-[160px] whitespace-pre-wrap leading-relaxed font-mono text-slate-200">
@@ -1258,15 +1493,15 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                     <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-extrabold block">Consumption Analytics</span>
                     {historyItems.length > 0 && (
                       <span className="text-[8px] font-mono text-slate-500 uppercase font-bold bg-slate-950/60 px-1.5 py-0.5 rounded border border-slate-900">
-                        {Math.min(historyItems.length, 10)} of 10 generations
+                        {Math.min(historyItems.length, 20)} of {historyItems.length} generations
                       </span>
                     )}
                   </div>
                   
-                  <div className="h-[140px] w-full relative flex items-center justify-center">
+                  <div className="h-[190px] w-full relative flex items-center justify-center">
                     {(() => {
                       const reversedHistory = [...historyItems]
-                        .slice(0, 10)
+                        .slice(0, 20)
                         .reverse();
 
                       const chartData = reversedHistory.map((item, idx) => {
@@ -1297,10 +1532,38 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                       const CustomTooltip = ({ active, payload }: any) => {
                         if (active && payload && payload.length) {
                           const data = payload[0].payload;
+                          const isClicked = selectedChartPoint && selectedChartPoint.time === data.time && selectedChartPoint.date === data.date;
+                          
+                          // Custom localized recommendation generator
+                          const getHint = (dom: string, tgt: string) => {
+                            const d = dom.toLowerCase();
+                            const t = tgt.toLowerCase();
+                            if (t.includes("chatgpt")) {
+                              if (d.includes("program") || d.includes("dev") || d.includes("sql")) return "Optimized system role reduces context token boilerplate.";
+                              return "Generates precise formatting rules for ChatGPT parser.";
+                            }
+                            if (t.includes("claude")) {
+                              return "XML tags included to maximize Claude prompt compliance.";
+                            }
+                            if (t.includes("gemini")) {
+                              return "Structured declaration matches Gemini context layout.";
+                            }
+                            return "4-D optimized structures minimize platform call latency.";
+                          };
+
                           return (
-                            <div className="bg-slate-950 p-2 rounded-lg border border-slate-800 shadow-2xl text-[9px] font-mono space-y-0.5">
-                              <div className="text-slate-400 font-bold border-b border-slate-900 pb-0.5 mb-1 text-[8px] uppercase">
-                                {data.date} • {data.time}
+                            <div className={`bg-slate-950 p-2.5 rounded-lg border shadow-2xl text-[9px] font-mono space-y-1 transition-all ${
+                              isClicked ? "border-sky-500 ring-1 ring-sky-500/30 shadow-[0_0_12px_rgba(56,189,248,0.25)]" : "border-slate-800"
+                            }`}>
+                              {isClicked && (
+                                <div className="text-sky-400 font-extrabold text-[7px] tracking-widest uppercase mb-1 flex items-center gap-1">
+                                  <span className="w-1.5 h-1.5 bg-sky-400 rounded-full animate-pulse"></span>
+                                  Selected Generation Node
+                                </div>
+                              )}
+                              <div className="text-slate-400 font-bold border-b border-slate-900 pb-0.5 mb-1 text-[8px] uppercase flex items-center justify-between">
+                                <span>{data.date} • {data.time}</span>
+                                {isClicked && <span className="text-sky-400 text-[6px] border border-sky-950 px-1 rounded">ACTIVE</span>}
                               </div>
                               <div className="flex items-center gap-3 justify-between">
                                 <span className="text-slate-500">Tokens:</span>
@@ -1314,6 +1577,15 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                                 <span className="text-slate-500">Target:</span>
                                 <span className="text-slate-350 font-medium">{data.targetAI}</span>
                               </div>
+                              
+                              <div className="pt-1 mt-1 border-t border-slate-900/60 text-[7.5px] text-slate-400 leading-normal max-w-[170px]">
+                                <span className="text-slate-500 font-bold uppercase tracking-wider block text-[6.5px]">Optimization Hint:</span>
+                                {getHint(data.domain, data.targetAI)}
+                              </div>
+
+                              <div className="text-[7px] text-slate-500 text-center pt-0.5 border-t border-slate-950">
+                                Click node to pin breakdown
+                              </div>
                             </div>
                           );
                         }
@@ -1322,7 +1594,17 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
 
                       return (
                         <ResponsiveContainer width="100%" height="100%">
-                          <LineChart data={chartData} margin={{ top: 8, right: 8, left: -24, bottom: 0 }}>
+                          <LineChart 
+                            data={chartData} 
+                            margin={{ top: 8, right: 8, left: -24, bottom: 5 }}
+                            style={{ cursor: 'pointer' }}
+                            onClick={(state: any) => {
+                              if (state && state.activePayload && state.activePayload.length) {
+                                const payloadData = state.activePayload[0].payload;
+                                setSelectedChartPoint(payloadData);
+                              }
+                            }}
+                          >
                             <CartesianGrid strokeDasharray="3 3" stroke="#0c0e17" vertical={false} />
                             <XAxis 
                               dataKey="time" 
@@ -1348,12 +1630,93 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                               dot={{ r: 2.5, fill: '#030610', stroke: '#38bdf8', strokeWidth: 1.5 }}
                               activeDot={{ r: 4, fill: '#38bdf8', stroke: '#ffffff', strokeWidth: 1 }}
                             />
+                            <Brush
+                              dataKey="time"
+                              height={18}
+                              stroke="#334155"
+                              fill="#090d16"
+                              tickFormatter={() => ""}
+                              travellerWidth={6}
+                            />
                           </LineChart>
                         </ResponsiveContainer>
                       );
                     })()}
                   </div>
                 </div>
+
+                {/* Clicked Data Node Details Display */}
+                {selectedChartPoint && (
+                  <div className="bg-slate-950/60 border border-sky-950/40 p-2.5 rounded-xl space-y-1.5 animate-fadeIn">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="inline-block w-2 h-2 rounded-full bg-sky-500 shadow-[0_0_8px_rgba(56,189,248,0.5)]"></span>
+                        <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-sky-400">Selected Node Breakdown</span>
+                      </div>
+                      <button 
+                        onClick={() => setSelectedChartPoint(null)}
+                        className="text-[8px] font-mono text-slate-500 hover:text-slate-350 transition-colors uppercase px-1.5 py-0.5 rounded hover:bg-slate-900 border border-transparent hover:border-slate-800"
+                        title="Clear selection"
+                      >
+                        [clear]
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-left">
+                      <div className="bg-slate-950/80 p-1.5 rounded border border-slate-900">
+                        <span className="text-[8px] font-mono text-slate-500 uppercase block">Timestamp</span>
+                        <span className="text-[10px] font-medium text-slate-300 font-mono">
+                          {selectedChartPoint.date} {selectedChartPoint.time}
+                        </span>
+                      </div>
+                      <div className="bg-slate-950/80 p-1.5 rounded border border-slate-900">
+                        <span className="text-[8px] font-mono text-slate-500 uppercase block">Domain Mode</span>
+                        <span className="text-[10px] font-extrabold text-sky-350 font-mono uppercase">
+                          {selectedChartPoint.domain}
+                        </span>
+                      </div>
+                      <div className="bg-slate-950/80 p-1.5 rounded border border-slate-900">
+                        <span className="text-[8px] font-mono text-slate-500 uppercase block">Target Engine</span>
+                        <span className="text-[10px] font-extrabold text-blue-350 font-mono">
+                          {selectedChartPoint.targetAI}
+                        </span>
+                      </div>
+                      <div className="bg-slate-950/80 p-1.5 rounded border border-slate-900">
+                        <span className="text-[8px] font-mono text-slate-500 uppercase block">Token Volume</span>
+                        <span className="text-[10px] font-extrabold text-emerald-450 font-mono">
+                          {selectedChartPoint.tokens} <span className="text-[8px] text-slate-500 font-normal">tokens</span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-950/90 p-2 rounded border border-slate-900/60 text-[9px] text-slate-300 leading-relaxed font-sans">
+                      <span className="text-sky-400 font-bold font-mono tracking-wide text-[8px] uppercase block mb-0.5">Engine Context Optimization Strategy:</span>
+                      {(() => {
+                        const dom = (selectedChartPoint.domain || "").toLowerCase();
+                        const tgt = (selectedChartPoint.targetAI || "").toLowerCase();
+                        if (tgt.includes("chatgpt")) {
+                          if (dom.includes("program") || dom.includes("dev") || dom.includes("sql") || dom.includes("data")) {
+                            return "GPT-4o optimization bias: Strips unnecessary prompt boilerplate, optimizes code indentation and leverages inline JSON schemas efficiently.";
+                          }
+                          if (dom.includes("market") || dom.includes("cop") || dom.includes("creative")) {
+                            return "GPT-4o creative context bias: Prefers short persuasive templates. Optimized system guidelines restrict token bloat and hallucination vectors.";
+                          }
+                          return "ChatGPT standard: Minimizes input formatting guidelines to ensure robust system instructions persist uniformly across standard conversation streams.";
+                        }
+                        if (tgt.includes("claude")) {
+                          if (dom.includes("program") || dom.includes("dev") || dom.includes("sql") || dom.includes("data")) {
+                            return "Claude 3.5 Sonnet structure: Harnesses XML tags (<code_block>, <instructions>) as logical barriers. Keeps technical parameters strictly separate.";
+                          }
+                          return "Claude optimization logic: Injects clear tags for variables and systemic requirements to maximize the reasoning index of Opus and Sonnet engines.";
+                        }
+                        if (tgt.includes("gemini")) {
+                          return "Gemini 1.5 Flash/Pro logic: Places core instruction directives at the absolute top of the system prompt to scale up instruction compliance across deep context windows.";
+                        }
+                        return "General LLM configuration: Integrates strict semantic anchors to suppress redundant markdown fluff and keep production pricing parameters nominal.";
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Bullet Improvements */}
@@ -1574,6 +1937,272 @@ Just share your rough prompt and I'll handle the rest!`}
             </div>
             <div className="pt-6">
               <SwimlaneWorkflow />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FULL SCREEN PROMPT EXCLUSIVITY OUTCOME OVERLAY */}
+      {isFullScreenPrompt && response && (
+        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-md flex items-center justify-center p-4 md:p-8 z-50">
+          <div className="w-full h-full max-w-7xl max-h-[92vh] bg-slate-900/90 border border-slate-800 shadow-2xl rounded-2xl flex flex-col overflow-hidden backdrop-blur-xl relative">
+            
+            {/* Header section with telemetry and actions */}
+            <div className="p-4 sm:p-5 border-b border-slate-800/80 bg-slate-950/80 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-sky-500/10 border border-sky-500/20 flex items-center justify-center">
+                  <Sparkles className="w-4 h-4 text-sky-400 animate-pulse" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-display font-bold text-sm text-white tracking-wide">NEXA Focus Engine Pro</h3>
+                  <span className="block text-[9px] font-mono text-sky-400 tracking-wider uppercase font-semibold text-left">Active Distraction-Free Context Exclusivity</span>
+                </div>
+              </div>
+
+              {/* View toggle */}
+              <div className="flex items-center gap-1 bg-slate-900 p-1 rounded-md border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setPromptViewStyle("clean")}
+                  className={`px-3 py-1.5 text-[10px] font-mono font-bold rounded transition-all cursor-pointer ${
+                    promptViewStyle === "clean"
+                      ? "bg-slate-805 text-sky-400 shadow border border-slate-700 font-bold"
+                      : "text-slate-500 hover:text-slate-350"
+                  }`}
+                >
+                  Optimized Text Only
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPromptViewStyle("diff")}
+                  className={`px-3 py-1.5 text-[10px] font-mono font-bold rounded transition-all cursor-pointer flex items-center gap-1.5 ${
+                    promptViewStyle === "diff"
+                      ? "bg-slate-805 text-sky-400 shadow border border-slate-700 font-bold"
+                      : "text-slate-500 hover:text-slate-350"
+                  }`}
+                >
+                  <GitCompare className="w-3.5 h-3.5" />
+                  Side-by-Side Diff
+                </button>
+              </div>
+
+              {/* Meta indicators & Minimize */}
+              <div className="flex items-center gap-3">
+                <span className="hidden sm:inline-block text-[10px] font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 select-all">
+                  Engine: {targetAI || "Other"}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsFullScreenPrompt(false)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-slate-650 text-slate-200 hover:text-white text-xs font-mono transition-colors cursor-pointer select-none"
+                  title="Close Full Screen [Esc]"
+                >
+                  <Minimize2 className="w-3.5 h-3.5" />
+                  <span>Exit Focus [Esc]</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Main scrollable body panel */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8 space-y-6">
+              
+              {/* Dynamic instruction box when in clean view */}
+              {promptViewStyle === "clean" ? (
+                <div className="h-full flex flex-col gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/65 p-3.5 rounded-xl border border-slate-900">
+                    <div className="flex flex-wrap items-center gap-3 text-left">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-extrabold block">Your Optimized Prompt Result</span>
+                      <div className="flex items-center gap-1 bg-sky-950/40 border border-sky-500/20 px-2 py-0.5 rounded text-sky-400 font-mono text-[9px]">
+                        <Cpu className="w-2.5 h-2.5 text-sky-450 animate-pulse shrink-0" />
+                        <span>Estimated Tokens: <strong className="text-sky-300 font-extrabold">{Math.ceil((response.optimizedPrompt || "").length / 4.1)}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-500 bg-slate-900 px-2.5 py-0.5 rounded border border-slate-850">
+                        <span>Characters: <strong className="text-slate-300">{(response.optimizedPrompt || "").length}</strong></span>
+                        <span>•</span>
+                        <span>Words: <strong className="text-slate-300">{(response.optimizedPrompt || "").trim() ? (response.optimizedPrompt || "").split(/\s+/).length : 0}</strong></span>
+                      </div>
+                      <div className="flex items-center gap-1 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-850">
+                        <span className="text-[8px] font-mono text-slate-500 uppercase select-none font-bold">Syntax:</span>
+                        <select
+                          value={selectedLanguage}
+                          onChange={(e) => setSelectedLanguage(e.target.value)}
+                          className="bg-transparent text-sky-450 border-none px-1 py-0.5 rounded text-[10px] font-mono cursor-pointer hover:text-sky-300 outline-none transition-all font-bold"
+                        >
+                          <option value="auto" className="bg-slate-950 text-slate-300">Auto ({highlightLanguage})</option>
+                          <option value="markdown" className="bg-slate-950 text-slate-300">Markdown</option>
+                          <option value="javascript" className="bg-slate-950 text-slate-300">JavaScript</option>
+                          <option value="python" className="bg-slate-950 text-slate-300">Python</option>
+                          <option value="sql" className="bg-slate-950 text-slate-300">SQL</option>
+                          <option value="json" className="bg-slate-950 text-slate-300">JSON</option>
+                          <option value="yaml" className="bg-slate-950 text-slate-300">YAML</option>
+                          <option value="bash" className="bg-slate-950 text-slate-300">Shell/Bash</option>
+                        </select>
+                      </div>
+                    </div>
+                    
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(response.optimizedPrompt || "")}
+                      className="w-full sm:w-auto px-4 py-2 rounded-xl bg-sky-500 hover:bg-sky-400 text-slate-950 font-extrabold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-sky-500/10"
+                    >
+                      {copiedPrompt ? (
+                        <>
+                          <Check className="w-4 h-4 text-emerald-950" /> Prompt Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="w-4 h-4" /> Copy Prompt
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  <div className="flex-1 relative group/fullscreen-pre min-h-[350px]">
+                    {enableHighlighting ? (
+                      <pre className={`language-${highlightLanguage} w-full h-full p-6 pr-12 rounded-xl bg-[#030610]/60 border border-slate-950/70 text-sm sm:text-base text-slate-205 overflow-auto whitespace-pre-wrap leading-relaxed select-all font-mono backdrop-blur-sm shadow-inner`}>
+                        <code
+                          className={`language-${highlightLanguage}`}
+                          dangerouslySetInnerHTML={{
+                            __html: (() => {
+                              const code = response.optimizedPrompt || "";
+                              const grammar = Prism.languages[highlightLanguage];
+                              if (grammar) {
+                                return Prism.highlight(code, grammar, highlightLanguage);
+                              }
+                              return Prism.highlight(code, Prism.languages.markdown || Prism.languages.markup, "markdown");
+                            })()
+                          }}
+                        />
+                      </pre>
+                    ) : (
+                      <pre className="w-full h-full p-6 pr-12 rounded-xl bg-[#030610]/60 border border-slate-950/70 text-sm sm:text-base text-slate-205 overflow-auto whitespace-pre-wrap leading-relaxed select-all font-sans backdrop-blur-sm shadow-inner">
+                        <code className="text-slate-205">{response.optimizedPrompt || ""}</code>
+                      </pre>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => handleCopy(response.optimizedPrompt || "")}
+                      className="absolute top-4 right-4 p-2.5 rounded-lg bg-slate-950 border border-slate-800 hover:bg-slate-900 hover:text-white transition-all text-slate-400 cursor-pointer shadow-lg flex items-center justify-center"
+                      title="Copy to Clipboard"
+                    >
+                      {copiedPrompt ? (
+                        <Check className="w-5 h-5 text-emerald-400" />
+                      ) : (
+                        <Copy className="w-5 h-5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* IN COMPARISON VIEW */
+                <div className="space-y-6 h-full flex flex-col">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-[400px]">
+                    
+                    {/* Left: Original Input Block */}
+                    <div className="flex flex-col rounded-xl bg-slate-950/40 border border-slate-800 overflow-hidden text-xs">
+                      <div className="bg-red-950/20 px-4 py-3 border-b border-red-950/40 flex items-center justify-between text-xs font-mono uppercase tracking-wider font-extrabold text-red-400">
+                        <span>1. Original Draft Spec</span>
+                        <div className="flex items-center gap-2">
+                          <span className="bg-red-500/10 px-2 py-0.5 rounded border border-red-500/15">{originalRequestForDiff ? Math.ceil(originalRequestForDiff.length / 4.1) : 0} Tokens</span>
+                          <span>{originalRequestForDiff ? originalRequestForDiff.length : 0} Chars</span>
+                        </div>
+                      </div>
+                      
+                      <div className="p-5 overflow-y-auto flex-1 font-sans text-slate-350 leading-relaxed text-sm whitespace-pre-wrap max-h-[50vh] text-left">
+                        {originalRequestForDiff ? (
+                          (() => {
+                            const chunks = computeWordDiff(originalRequestForDiff, response.optimizedPrompt || "");
+                            return chunks.map((chunk, idx) => {
+                              if (chunk.type === "added") return null;
+                              if (chunk.type === "removed") {
+                                return (
+                                  <span key={idx} className="bg-red-550/15 text-red-350 px-0.5 rounded border border-red-550/10 line-through decoration-red-500/40 font-medium">
+                                    {chunk.value}
+                                  </span>
+                                );
+                              }
+                              return <span key={idx}>{chunk.value}</span>;
+                            });
+                          })()
+                        ) : (
+                          <span className="italic text-slate-600">Empty draft status</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Right: Expanded/Optimized Output Block */}
+                    <div className="flex flex-col rounded-xl bg-slate-950/40 border border-slate-850 overflow-hidden text-xs relative group/fullscreen-diff-pane">
+                      <div className="bg-emerald-950/20 px-4 py-3 border-b border-emerald-950/40 flex items-center justify-between text-xs font-mono uppercase tracking-wider font-extrabold text-emerald-400">
+                        <span>2. NEXA Expanded Structure</span>
+                        <div className="flex items-center gap-2">
+                          <span className="bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-555/15">{response.optimizedPrompt ? Math.ceil(response.optimizedPrompt.length / 4.1) : 0} Tokens</span>
+                          <span>{response.optimizedPrompt ? response.optimizedPrompt.length : 0} Chars</span>
+                        </div>
+                      </div>
+                      
+                      <div className="p-5 overflow-y-auto flex-1 font-mono text-slate-205 leading-relaxed text-sm whitespace-pre-wrap max-h-[50vh] text-left">
+                        {response.optimizedPrompt ? (
+                          (() => {
+                            const chunks = computeWordDiff(originalRequestForDiff, response.optimizedPrompt);
+                            return chunks.map((chunk, idx) => {
+                              if (chunk.type === "removed") return null;
+                              if (chunk.type === "added") {
+                                return (
+                                  <span key={idx} className="bg-emerald-500/15 text-emerald-355 px-0.5 rounded border border-emerald-555/10 font-bold">
+                                    {chunk.value}
+                                  </span>
+                                );
+                              }
+                              return <span key={idx}>{chunk.value}</span>;
+                            });
+                          })()
+                        ) : (
+                          <span className="italic text-slate-600 font-sans">Empty compiled outcome</span>
+                        )}
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleCopy(response.optimizedPrompt || "")}
+                        className="absolute bottom-4 right-4 px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-805 hover:bg-slate-850 text-xs font-mono text-slate-300 hover:text-white cursor-pointer transition-all flex items-center gap-1.5 shadow-lg shadow-slate-950"
+                      >
+                        {copiedPrompt ? (
+                          <>
+                            <Check className="w-3.5 h-3.5 text-emerald-400" /> Copied Outcome
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="w-3.5 h-3.5" /> Copy Output
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                  </div>
+
+                  {/* Wide Statistics Tracker Panel */}
+                  <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-900 text-xs text-slate-400 flex flex-col md:flex-row md:items-center md:justify-between gap-3 font-mono">
+                    <span className="uppercase tracking-widest font-extrabold text-sky-455 flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-sky-400 animate-pulse" />
+                      NEXA Prompt Expansion Intelligence Quotient:
+                    </span>
+                    <div className="flex flex-wrap items-center gap-4 text-slate-300">
+                      <span>Input Volume: <strong className="text-red-400">{originalRequestForDiff ? originalRequestForDiff.trim().split(/\s+/).length : 0} words</strong></span>
+                      <span className="text-slate-700">•</span>
+                      <span>Output Volume: <strong className="text-emerald-450 font-bold">{response.optimizedPrompt ? response.optimizedPrompt.trim().split(/\s+/).length : 0} words</strong></span>
+                      <span className="text-slate-700">•</span>
+                      <span>Volumetric Scaling Factor: <strong className="text-sky-400 font-extrabold">x{originalRequestForDiff ? (response.optimizedPrompt.length / (originalRequestForDiff.length || 1)).toFixed(1) : "0"} expansion</strong></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Footer containing quick advice */}
+            <div className="p-3.5 border-t border-slate-800/60 bg-slate-950/90 text-center text-slate-500 font-mono text-[9px]">
+              Distraction-Free Focus mode enables optimal inspection of parameters. Press <kbd className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 font-bold">ESC</kbd> to return to active workspace.
             </div>
           </div>
         </div>

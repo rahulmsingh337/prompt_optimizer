@@ -1,6 +1,6 @@
 {
   "name": "NEXA Prompt Agent",
   "description": "NEXA is a web application that transforms rough user requests into optimized prompts using a modular 4-D methodology and intelligent complexity auto-detection.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }
