@@ -22,6 +22,7 @@ import {
 
 import { 
   Sparkles, 
+  Eye,
   Terminal, 
   HelpCircle, 
   CheckCircle2, 
@@ -119,6 +120,65 @@ function computeWordDiff(oldText: string, newText: string): DiffChunk[] {
   return result;
 }
 
+export interface LineSegment {
+  type: "added" | "removed" | "equal";
+  value: string;
+}
+
+export interface DiffLine {
+  segments: LineSegment[];
+  hasChanges: boolean;
+  isEntirelyNew?: boolean;
+}
+
+export function getLinesFromChunks(chunks: DiffChunk[], isLeft: boolean): DiffLine[] {
+  const lines: DiffLine[] = [];
+  let currentSegments: LineSegment[] = [];
+  let currentHasChanges = false;
+
+  for (const chunk of chunks) {
+    if (isLeft && chunk.type === "added") continue;
+    if (!isLeft && chunk.type === "removed") continue;
+
+    const value = chunk.value;
+    const parts = value.split("\n");
+
+    for (let p = 0; p < parts.length; p++) {
+      const partText = parts[p];
+      
+      if (partText !== undefined && partText !== "") {
+        currentSegments.push({
+          type: chunk.type,
+          value: partText
+        });
+        if (chunk.type !== "equal") {
+          currentHasChanges = true;
+        }
+      }
+
+      if (p < parts.length - 1) {
+        lines.push({
+          segments: currentSegments,
+          hasChanges: currentHasChanges,
+          isEntirelyNew: currentSegments.every(s => s.type === (isLeft ? "removed" : "added")) && currentSegments.length > 0
+        });
+        currentSegments = [];
+        currentHasChanges = false;
+      }
+    }
+  }
+
+  if (currentSegments.length > 0 || lines.length === 0) {
+    lines.push({
+      segments: currentSegments,
+      hasChanges: currentHasChanges,
+      isEntirelyNew: currentSegments.every(s => s.type === (isLeft ? "removed" : "added")) && currentSegments.length > 0
+    });
+  }
+
+  return lines;
+}
+
 export function detectLanguage(text: string): string {
   if (!text) return "markdown";
   const trimmed = text.trim();
@@ -175,6 +235,98 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
   const [copiedPrompt, setCopiedPrompt] = useState<boolean>(false);
   const [originalRequestForDiff, setOriginalRequestForDiff] = useState<string>("");
   const [promptViewStyle, setPromptViewStyle] = useState<"clean" | "diff">("clean");
+  const [highlightImpactLines, setHighlightImpactLines] = useState<boolean>(true);
+
+  // Helper generator to render line-by-line colored diff comparisons
+  const renderDiffContent = (isLeft: boolean, isFullScreen: boolean = false) => {
+    const sourceText = isLeft ? originalRequestForDiff : (response?.optimizedPrompt || "");
+    if (!sourceText) {
+      return (
+        <div className="p-4 overflow-y-auto max-h-72 min-h-[160px] whitespace-pre-wrap leading-relaxed font-sans text-slate-500">
+          <span className="italic">
+            {isLeft ? "Empty workspace input" : "Empty compiled outcome"}
+          </span>
+        </div>
+      );
+    }
+
+    const chunks = computeWordDiff(originalRequestForDiff, response?.optimizedPrompt || "");
+    const lines = getLinesFromChunks(chunks, isLeft);
+
+    const scrollContainerClass = isFullScreen 
+      ? "overflow-y-auto flex-1 font-mono leading-relaxed text-sm max-h-[50vh] flex flex-col pt-2"
+      : "overflow-y-auto max-h-72 min-h-[160px] flex flex-col font-mono text-[11px] sm:text-xs pt-2";
+
+    return (
+      <div className={scrollContainerClass}>
+        {lines.map((line, lineIdx) => {
+          const hasChanges = line.hasChanges;
+          const lineNum = lineIdx + 1;
+          
+          let highlightClass = "border-l-2 border-transparent hover:bg-slate-900/40";
+          let label = null;
+          
+          if (highlightImpactLines && hasChanges) {
+            if (isLeft) {
+              highlightClass = "bg-red-500/5 hover:bg-red-500/10 border-l-2 border-red-500/50";
+              label = "Modified";
+            } else {
+              highlightClass = "bg-emerald-500/5 hover:bg-emerald-500/10 border-l-2 border-emerald-500/60";
+              label = line.isEntirelyNew ? "Added Line" : "Optimized";
+            }
+          }
+
+          return (
+            <div 
+              key={lineIdx} 
+              className={`group/diff-line flex items-stretch leading-relaxed transition-all py-0.5 relative ${highlightClass}`}
+            >
+              <div className="w-10 select-none text-right pr-3.5 text-slate-600 font-mono text-[10px] shrink-0 border-r border-slate-900/20 bg-slate-950/10">
+                {lineNum}
+              </div>
+              <div className={`pl-3.5 pr-2 flex-1 whitespace-pre-wrap break-all text-left ${isLeft ? "font-sans text-slate-400 text-xs sm:text-sm" : "font-mono text-slate-205 text-xs sm:text-sm"}`}>
+                {line.segments.length === 0 ? (
+                  <span className="inline-block w-4">&#8203;</span>
+                ) : (
+                  line.segments.map((seg, segIdx) => {
+                    if (seg.type === "removed") {
+                      return (
+                        <span 
+                          key={segIdx} 
+                          className="bg-red-500/20 text-red-300 px-0.5 rounded border border-red-500/10 line-through decoration-red-500/40 font-medium"
+                        >
+                          {seg.value}
+                        </span>
+                      );
+                    } else if (seg.type === "added") {
+                      return (
+                        <span 
+                          key={segIdx} 
+                          className="bg-emerald-500/15 text-emerald-300 px-0.5 rounded border border-emerald-500/10 font-bold"
+                        >
+                          {seg.value}
+                        </span>
+                      );
+                    }
+                    return (
+                      <span key={segIdx}>
+                        {seg.value}
+                      </span>
+                    );
+                  })
+                )}
+              </div>
+              {label && (
+                <span className="opacity-0 group-hover/diff-line:opacity-100 transition-opacity absolute right-4 text-[8px] font-sans font-bold tracking-wider bg-slate-900 border border-slate-800 rounded px-1.5 py-0.5 text-slate-400 uppercase pointer-events-none select-none z-10 shrink-0">
+                  {label}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
 
   // Highlight states
   const [highlightLanguage, setHighlightLanguage] = useState<string>("markdown");
@@ -1578,6 +1730,33 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                 ) : (
                   /* GORGEOUS INSIGHTFUL SIDE-BY-SIDE DIFF PANELS */
                   <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/40 p-3.5 rounded-xl border border-slate-900/60">
+                      <div className="text-left font-sans">
+                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                          <Eye className="w-3.5 h-3.5 text-sky-500" /> NEXA Impact Analyzer
+                        </span>
+                        <p className="text-[11px] text-slate-400/80 leading-normal mt-0.5">
+                          Our Develop stage expands, specifies constraints, and enforces optimal prompt instructions. Toggle impact lines to highlight optimized sectors.
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center bg-slate-950 p-1.5 px-3 rounded-lg border border-slate-900 shadow">
+                        <span className="text-[10px] text-slate-300 font-bold select-none font-sans uppercase tracking-widest text-[9px]">Highlight Changed Lines</span>
+                        <button
+                          type="button"
+                          onClick={() => setHighlightImpactLines(!highlightImpactLines)}
+                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                            highlightImpactLines ? "bg-sky-500" : "bg-slate-800"
+                          }`}
+                        >
+                          <span
+                            className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-950 transition duration-200 ease-in-out ${
+                              highlightImpactLines ? "translate-x-4 bg-white font-bold" : "translate-x-0"
+                            }`}
+                          />
+                        </button>
+                      </div>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       
                       {/* Left Block: Original Rough Request with removed highlight */}
@@ -1590,26 +1769,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                           </div>
                         </div>
                         
-                        <div className="p-4 overflow-y-auto max-h-72 min-h-[160px] whitespace-pre-wrap leading-relaxed font-sans text-slate-400">
-                          {originalRequestForDiff ? (
-                            (() => {
-                              const chunks = computeWordDiff(originalRequestForDiff, response.optimizedPrompt || "");
-                              return chunks.map((chunk, idx) => {
-                                if (chunk.type === "added") return null;
-                                if (chunk.type === "removed") {
-                                  return (
-                                    <span key={idx} className="bg-red-500/15 text-red-350 px-0.5 rounded border border-red-550/10 line-through decoration-red-500/40 font-medium">
-                                      {chunk.value}
-                                    </span>
-                                  );
-                                }
-                                return <span key={idx}>{chunk.value}</span>;
-                              });
-                            })()
-                          ) : (
-                            <span className="italic text-slate-600">Empty workspace input</span>
-                          )}
-                        </div>
+                        {renderDiffContent(true, false)}
                       </div>
 
                       {/* Right Block: Expanded Output with green highlights */}
@@ -1622,26 +1782,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                           </div>
                         </div>
                         
-                        <div className="p-4 overflow-y-auto max-h-72 min-h-[160px] whitespace-pre-wrap leading-relaxed font-mono text-slate-200">
-                          {response.optimizedPrompt ? (
-                            (() => {
-                              const chunks = computeWordDiff(originalRequestForDiff, response.optimizedPrompt);
-                              return chunks.map((chunk, idx) => {
-                                if (chunk.type === "removed") return null;
-                                if (chunk.type === "added") {
-                                  return (
-                                    <span key={idx} className="bg-emerald-500/15 text-emerald-350 px-0.5 rounded border border-emerald-550/10 font-bold">
-                                      {chunk.value}
-                                    </span>
-                                  );
-                                }
-                                return <span key={idx}>{chunk.value}</span>;
-                              });
-                            })()
-                          ) : (
-                            <span className="italic text-slate-600">Empty compiled space</span>
-                          )}
-                        </div>
+                        {renderDiffContent(false, false)}
 
                         {/* Direct floating copy action */}
                         <button
@@ -2337,6 +2478,33 @@ Just share your rough prompt and I'll handle the rest!`}
               ) : (
                 /* IN COMPARISON VIEW */
                 <div className="space-y-6 h-full flex flex-col">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/40 p-4 rounded-xl border border-slate-900/60 font-sans">
+                    <div className="text-left">
+                      <span className="text-xs font-extrabold uppercase tracking-widest text-slate-350 flex items-center gap-1.5 font-sans">
+                        <Eye className="w-4 h-4 text-sky-450 animate-pulse" /> Fullscreen NEXA Impact Dashboard
+                      </span>
+                      <p className="text-xs text-slate-400 leading-normal mt-0.5 max-w-2xl font-sans text-left">
+                        Our specialized Develop Optimizer analyzes input patterns to auto-flesh detailed descriptions, context parameters, and format guidelines. Toggle line-level highlighting to trace edits instantly.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2.5 shrink-0 self-end sm:self-center bg-slate-950 p-2 px-3 rounded-lg border border-slate-850 shadow">
+                      <span className="text-[10px] text-slate-300 font-bold select-none uppercase tracking-widest text-[9px] font-sans">Highlight Changed Lines</span>
+                      <button
+                        type="button"
+                        onClick={() => setHighlightImpactLines(!highlightImpactLines)}
+                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                          highlightImpactLines ? "bg-sky-500" : "bg-slate-800"
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-slate-950 transition duration-200 ease-in-out ${
+                            highlightImpactLines ? "translate-x-4 bg-white font-bold" : "translate-x-0"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 flex-1 min-h-[400px]">
                     
                     {/* Left: Original Input Block */}
@@ -2349,26 +2517,7 @@ Just share your rough prompt and I'll handle the rest!`}
                         </div>
                       </div>
                       
-                      <div className="p-5 overflow-y-auto flex-1 font-sans text-slate-350 leading-relaxed text-sm whitespace-pre-wrap max-h-[50vh] text-left">
-                        {originalRequestForDiff ? (
-                          (() => {
-                            const chunks = computeWordDiff(originalRequestForDiff, response.optimizedPrompt || "");
-                            return chunks.map((chunk, idx) => {
-                              if (chunk.type === "added") return null;
-                              if (chunk.type === "removed") {
-                                return (
-                                  <span key={idx} className="bg-red-550/15 text-red-350 px-0.5 rounded border border-red-550/10 line-through decoration-red-500/40 font-medium">
-                                    {chunk.value}
-                                  </span>
-                                );
-                              }
-                              return <span key={idx}>{chunk.value}</span>;
-                            });
-                          })()
-                        ) : (
-                          <span className="italic text-slate-600">Empty draft status</span>
-                        )}
-                      </div>
+                      {renderDiffContent(true, true)}
                     </div>
 
                     {/* Right: Expanded/Optimized Output Block */}
@@ -2381,26 +2530,7 @@ Just share your rough prompt and I'll handle the rest!`}
                         </div>
                       </div>
                       
-                      <div className="p-5 overflow-y-auto flex-1 font-mono text-slate-205 leading-relaxed text-sm whitespace-pre-wrap max-h-[50vh] text-left">
-                        {response.optimizedPrompt ? (
-                          (() => {
-                            const chunks = computeWordDiff(originalRequestForDiff, response.optimizedPrompt);
-                            return chunks.map((chunk, idx) => {
-                              if (chunk.type === "removed") return null;
-                              if (chunk.type === "added") {
-                                return (
-                                  <span key={idx} className="bg-emerald-500/15 text-emerald-355 px-0.5 rounded border border-emerald-555/10 font-bold">
-                                    {chunk.value}
-                                  </span>
-                                );
-                              }
-                              return <span key={idx}>{chunk.value}</span>;
-                            });
-                          })()
-                        ) : (
-                          <span className="italic text-slate-600 font-sans">Empty compiled outcome</span>
-                        )}
-                      </div>
+                      {renderDiffContent(false, true)}
 
                       <button
                         type="button"
