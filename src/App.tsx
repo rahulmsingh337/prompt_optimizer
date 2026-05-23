@@ -55,13 +55,8 @@ export default function App() {
 
   // Navigate utility setting address bar
   const navigateTo = (route: "sign-in" | "app") => {
-    if (auth.currentUser) {
-      setCurrentRoute("app");
-      window.history.pushState({}, "", "/app");
-    } else {
-      setCurrentRoute("sign-in");
-      window.history.pushState({}, "", "/sign-in");
-    }
+    setCurrentRoute(route);
+    window.history.pushState({}, "", `/${route}`);
   };
 
   // Google popup OAuth login handler
