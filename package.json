@@ -9,7 +9,10 @@
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "cap:build": "npm run build && npx cap sync android",
+    "cap:open": "npx cap open android",
+    "cap:sync": "npx cap sync"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
@@ -25,7 +28,12 @@
     "prismjs": "^1.30.0",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
-    "recharts": "^3.8.1"
+    "recharts": "^3.8.1",
+    "@capacitor/core": "^6.2.0",
+    "@capacitor/android": "^6.2.0",
+    "@capacitor/app": "^6.0.0",
+    "@capacitor/splash-screen": "^6.0.0",
+    "@capacitor/status-bar": "^6.0.0"
   },
   "devDependencies": {
     "@types/cookie-parser": "^1.4.10",
@@ -39,7 +47,8 @@
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.3",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.7",
+    "@capacitor/cli": "^6.2.0"
   },
   "overrides": {
     "node-domexception": "file:./node-domexception-override"
