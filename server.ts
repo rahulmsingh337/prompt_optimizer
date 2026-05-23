@@ -92,7 +92,7 @@ export interface TokenDatabase {
 
 const TOKENS_FILE = path.join(process.cwd(), "daily_tokens.json");
 export const DAILY_LIMIT = 500000;
-export const OWNER_EMAIL = "rs826748@gmail.com";
+export const OWNER_EMAIL = (process.env.OWNER_EMAIL || "rs826748@gmail.com").toLowerCase().trim();
 
 export function loadTokenDatabase(): TokenDatabase {
   try {
@@ -109,8 +109,12 @@ export function loadTokenDatabase(): TokenDatabase {
 export function saveTokenDatabase(dbData: TokenDatabase): void {
   try {
     fs.writeFileSync(TOKENS_FILE, JSON.stringify(dbData, null, 2), "utf-8");
-  } catch (error) {
-    console.error("[NEXA TOKEN ENGINE] Failed save:", error);
+  } catch (error: any) {
+    // On read-only filesystems (e.g. Vercel serverless), writes will fail silently.
+    // Token enforcement is best-effort in stateless deployments.
+    if (error?.code !== "EROFS" && error?.code !== "EACCES") {
+      console.error("[NEXA TOKEN ENGINE] Failed save:", error);
+    }
   }
 }
 
