@@ -4,10 +4,6 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <!-- Preconnect to external APIs before JS loads -->
-    <link rel="preconnect" href="https://generativelanguage.googleapis.com" />
-    <link rel="preconnect" href="https://accounts.google.com" />
-
     <!-- Primary SEO -->
     <title>NEXA Prompt Optimizer – Turn Rough Ideas into Perfect AI Prompts</title>
     <meta name="description" content="NEXA transforms vague, messy directives into structured, copy-ready prompts for ChatGPT, Claude, Gemini and more. Free AI prompt engineering tool with auto-complexity detection, security diagnostics, and 4-D pipeline methodology." />
@@ -34,13 +30,15 @@
     <meta name="twitter:description" content="Stop writing weak prompts. NEXA diagnoses, restructures, and delivers production-ready AI prompts using its 4-D pipeline: Deconstruct, Diagnose, Develop, Deliver." />
     <meta name="twitter:image" content="https://prompt-optimizer-rouge-one.vercel.app/og-image.png" />
 
-    <!-- PWA -->
+    <!-- PWA / Theme -->
     <meta name="theme-color" content="#0f0f0f" />
     <link rel="manifest" href="/manifest.json" />
+
+    <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-    <!-- Structured Data -->
+    <!-- Structured Data (JSON-LD) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -50,7 +48,11 @@
       "description": "NEXA transforms vague, messy directives into structured, copy-ready prompts for ChatGPT, Claude, Gemini and more using its proprietary 4-D pipeline methodology.",
       "applicationCategory": "UtilitiesApplication",
       "operatingSystem": "Any",
-      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
       "featureList": [
         "Auto-complexity detection (BASIC vs DETAIL mode)",
         "Security and injection risk diagnostics",
@@ -58,81 +60,15 @@
         "GitHub OAuth authentication",
         "No data retention – stateless sessions"
       ],
-      "creator": { "@type": "Organization", "name": "NEXA Intelligence" }
+      "creator": {
+        "@type": "Organization",
+        "name": "NEXA Intelligence"
+      }
     }
     </script>
-
-    <!-- Inline skeleton — paints immediately, before any JS loads -->
-    <!-- This is what fixes FCP. React replaces it once mounted. -->
-    <style>
-      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-      html, body { height: 100%; background: #0f0f0f; color: #eeedfe; font-family: system-ui, -apple-system, sans-serif; }
-      #root:empty + #__skeleton { display: flex; }
-      #__skeleton {
-        display: none;
-        position: fixed; inset: 0;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        background: #0f0f0f;
-        gap: 16px;
-        z-index: 9999;
-      }
-      .sk-logo {
-        display: flex; align-items: center; gap: 12px;
-        font-size: 28px; font-weight: 700; letter-spacing: -0.5px; color: #eeedfe;
-      }
-      .sk-icon {
-        width: 36px; height: 36px;
-      }
-      .sk-sub {
-        font-size: 13px; letter-spacing: 4px; color: #5dcaa5; text-transform: uppercase;
-      }
-      .sk-bar {
-        width: 200px; height: 2px; background: #1a1a2e; border-radius: 2px; overflow: hidden;
-        margin-top: 8px;
-      }
-      .sk-bar-fill {
-        height: 100%; width: 40%; background: linear-gradient(90deg, #534ab7, #5dcaa5);
-        border-radius: 2px;
-        animation: sk-slide 1.4s ease-in-out infinite;
-      }
-      @keyframes sk-slide {
-        0%   { transform: translateX(-100%); }
-        100% { transform: translateX(350%); }
-      }
-    </style>
   </head>
   <body>
     <div id="root"></div>
-
-    <!-- Skeleton shown instantly while React loads — hidden once #root has content -->
-    <div id="__skeleton" style="display:flex">
-      <div class="sk-logo">
-        <svg class="sk-icon" viewBox="0 0 36 36" xmlns="http://www.w3.org/2000/svg">
-          <polygon points="2,34 10,2 18,34" fill="#534AB7"/>
-          <polygon points="8,34 16,4 24,34" fill="#7F77DD" opacity="0.8"/>
-          <polygon points="18,34 28,6 34,34" fill="#1D9E75"/>
-          <rect x="10" y="15" width="16" height="3" rx="1" fill="#5DCAA5"/>
-        </svg>
-        NEXA
-      </div>
-      <div class="sk-sub">Prompt Optimizer</div>
-      <div class="sk-bar"><div class="sk-bar-fill"></div></div>
-    </div>
-
-    <script>
-      // Hide skeleton as soon as React mounts anything into #root
-      new MutationObserver(function(_, obs) {
-        var root = document.getElementById('root');
-        if (root && root.children.length > 0) {
-          var sk = document.getElementById('__skeleton');
-          if (sk) sk.style.display = 'none';
-          obs.disconnect();
-        }
-      }).observe(document.getElementById('root'), { childList: true });
-    </script>
-
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
