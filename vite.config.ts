@@ -16,31 +16,43 @@ export default defineConfig(() => {
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
     build: {
-      // No sourcemaps in production — saves ~41 KiB and stops leaking internals
       sourcemap: false,
-      // Minify with esbuild (default, fast)
       minify: 'esbuild',
-      // Warn on chunks over 400 KiB
       chunkSizeWarningLimit: 400,
       rollupOptions: {
         output: {
-          // Split large dependencies into separate chunks
-          // Browser caches them independently — repeat visits are much faster
-          manualChunks: {
-            // React core — changes rarely
-            'vendor-react': ['react', 'react-dom'],
-            // Charts — large, only needed on dashboard
-            'vendor-charts': ['recharts'],
-            // Animation — only needed on certain pages
-            'vendor-motion': ['motion'],
-            // Syntax highlighting — large, defer it
-            'vendor-prism': ['prismjs'],
-            // Firebase — only needed if user is logged in
-            'vendor-firebase': ['firebase'],
+          manualChunks(id) {
+            // Firebase — split by subpackage (has no root entry point)
+            if (id.includes('node_modules/firebase/')) {
+              return 'vendor-firebase';
+            }
+            if (id.includes('node_modules/@firebase/')) {
+              return 'vendor-firebase';
+            }
+            // React core
+            if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) {
+              return 'vendor-react';
+            }
+            // Charts
+            if (id.includes('node_modules/recharts')) {
+              return 'vendor-charts';
+            }
+            // Animation
+            if (id.includes('node_modules/motion') || id.includes('node_modules/framer-motion')) {
+              return 'vendor-motion';
+            }
+            // Syntax highlighting
+            if (id.includes('node_modules/prismjs')) {
+              return 'vendor-prism';
+            }
             // Google AI SDK
-            'vendor-genai': ['@google/genai'],
+            if (id.includes('node_modules/@google/genai')) {
+              return 'vendor-genai';
+            }
             // Icons
-            'vendor-icons': ['lucide-react'],
+            if (id.includes('node_modules/lucide-react')) {
+              return 'vendor-icons';
+            }
           },
         },
       },
