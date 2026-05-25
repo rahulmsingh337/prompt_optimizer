@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Allow: /sign-in
+
+# Block the authenticated app dashboard from indexing (nothing useful for crawlers there)
+Disallow: /app
+
+Sitemap: https://prompt-optimizer.vercel.app/sitemap.xml
