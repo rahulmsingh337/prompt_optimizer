@@ -978,33 +978,30 @@ Your task is to:
 
 
 // ----------------------------------------------------
-// VITE CLIENT INTEGRATION
+// VITE CLIENT INTEGRATION (local dev only)
 // ----------------------------------------------------
 
-async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
+if (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test" && !process.env.VITEST) {
+  (async () => {
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
     });
     app.use(vite.middlewares);
     console.info("Vite development middleware mounted successfully.");
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req: any, res: any) => {
-      res.sendFile(path.join(distPath, "index.html"));
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`NEXA Prompt Agent is listening on port ${PORT}`);
     });
-    console.info("Production static server enabled.");
-  }
-
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`NEXA Prompt Agent is listening on port ${PORT}`);
-  });
-}
-
-if (process.env.NODE_ENV !== "test" && !process.env.VITEST) {
-  startServer().catch((error) => {
+  })().catch((error) => {
     console.error("Critical server boot error: ", error);
   });
+} else if (process.env.NODE_ENV === "production") {
+  const distPath = path.join(process.cwd(), "dist");
+  app.use(express.static(distPath));
+  app.get("*", (req: any, res: any) => {
+    res.sendFile(path.join(distPath, "index.html"));
+  });
 }
+
+// Export for Vercel serverless
+export default app;
