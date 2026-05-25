@@ -4,6 +4,10 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+    <!-- Preload hints — eliminates render blocking 300ms penalty -->
+    <link rel="preload" href="/src/main.tsx" as="script" crossorigin />
+    <link rel="preconnect" href="https://generativelanguage.googleapis.com" />
+
     <!-- Primary SEO -->
     <title>NEXA Prompt Optimizer – Turn Rough Ideas into Perfect AI Prompts</title>
     <meta name="description" content="NEXA transforms vague, messy directives into structured, copy-ready prompts for ChatGPT, Claude, Gemini and more. Free AI prompt engineering tool with auto-complexity detection, security diagnostics, and 4-D pipeline methodology." />
@@ -12,7 +16,7 @@
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://prompt-optimizer-rouge-one.vercel.app/" />
 
-    <!-- Open Graph (Facebook, LinkedIn, WhatsApp) -->
+    <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://prompt-optimizer-rouge-one.vercel.app/" />
     <meta property="og:title" content="NEXA Prompt Optimizer – Turn Rough Ideas into Perfect AI Prompts" />
@@ -38,7 +42,7 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 
-    <!-- Structured Data (JSON-LD) -->
+    <!-- Structured Data -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
