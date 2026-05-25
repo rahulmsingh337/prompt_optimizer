@@ -1,18 +1,10 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect } from "react";
+import SignInPage from "./components/SignInPage";
+import OptimizerApp from "./components/OptimizerApp";
+import PlexusBackground from "./components/PlexusBackground";
+import { User } from "./types";
 import { auth, googleProvider } from "./firebase";
 import { onAuthStateChanged, signInWithPopup, signOut as firebaseSignOut } from "firebase/auth";
-import { User } from "./types";
-
-// Lazy load heavy components — they only download when actually needed
-// This shaves ~300KB from the initial bundle on the sign-in page
-const SignInPage = lazy(() => import("./components/SignInPage"));
-const OptimizerApp = lazy(() => import("./components/OptimizerApp"));
-const PlexusBackground = lazy(() => import("./components/PlexusBackground"));
-
-// Minimal inline fallback — skeleton already shown via index.html
-function PageLoader() {
-  return null;
-}
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -97,16 +89,12 @@ export default function App() {
   if (!sessionChecked) return null;
 
   return (
-    <Suspense fallback={<PageLoader />}>
+    <>
       <PlexusBackground />
-      {currentRoute === "sign-in" ? (
-        <SignInPage
-          onGoogleSignIn={handleGoogleSignIn}
-          isAuthenticating={isAuthenticating}
-        />
-      ) : (
-        <OptimizerApp user={user!} onSignOut={handleSignOut} />
-      )}
-    </Suspense>
+      <SignInPage
+        onGoogleSignIn={handleGoogleSignIn}
+        isLoading={isAuthenticating}
+      />
+    </>
   );
 }
