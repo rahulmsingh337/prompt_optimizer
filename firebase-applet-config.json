@@ -1,10 +1,10 @@
 {
-  "projectId": "enhanced-app-007pf",
-  "appId": "1:490512691274:web:d3074a9eb64b74b34536b3",
-  "apiKey": "AIzaSyAVC6MCxR3wBcM0YU0Ausg7lkIHaBSrfcM",
-  "authDomain": "enhanced-app-007pf.firebaseapp.com",
-  "firestoreDatabaseId": "ai-studio-b8945219-a93f-4907-a48f-e469a14cd7a0",
-  "storageBucket": "enhanced-app-007pf.firebasestorage.app",
-  "messagingSenderId": "490512691274",
-  "measurementId": ""
+  "apiKey": "AIzaSyA0jZp0lM3orBV1OzblxSmH7N0CQauj9e4",
+  "authDomain": "nexaoptimizer.firebaseapp.com",
+  "projectId": "nexaoptimizer",
+  "storageBucket": "nexaoptimizer.firebasestorage.app",
+  "messagingSenderId": "985924606073",
+  "appId": "1:985924606073:web:714e80efcff265d79b5ca8",
+  "measurementId": "G-1JDXG9DM0Z",
+  "firestoreDatabaseId": "(default)"
 }
