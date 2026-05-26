@@ -3,7 +3,7 @@ import SignInPage from "./components/SignInPage";
 import OptimizerApp from "./components/OptimizerApp";
 import PlexusBackground from "./components/PlexusBackground";
 import { User } from "./types";
-import { auth, googleProvider, signInWithRedirect, getRedirectResult } from "./firebase";
+import { auth, googleProvider, signInWithPopup } from "./firebase";
 import { onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
 
 export default function App() {
@@ -12,34 +12,6 @@ export default function App() {
   const [sessionChecked, setSessionChecked] = useState<boolean>(false);
   const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
 
-  // Handle redirect result on page load (fires after Google redirects back)
-  useEffect(() => {
-    setIsAuthenticating(true);
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          const firebaseUser = result.user;
-          const mappedUser: User = {
-            id: firebaseUser.uid,
-            login: firebaseUser.email || "google-user",
-            name: firebaseUser.displayName || firebaseUser.email || "Google User",
-            avatar_url: firebaseUser.photoURL || undefined,
-            provider: "google",
-          };
-          setUser(mappedUser);
-          setCurrentRoute("app");
-          window.history.replaceState({}, "", "/app");
-        }
-      })
-      .catch((err) => {
-        console.error("Redirect result error:", err);
-      })
-      .finally(() => {
-        setIsAuthenticating(false);
-      });
-  }, []);
-
-  // Watch auth state (handles refresh / session restore)
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
       if (firebaseUser) {
@@ -82,15 +54,25 @@ export default function App() {
     window.history.pushState({}, "", `/${route}`);
   };
 
-  // signInWithRedirect — navigates to Google, then comes back to this page
-  // No popup needed — works on all domains without Firebase domain whitelisting
   const handleGoogleSignIn = async () => {
+    setIsAuthenticating(true);
     try {
-      setIsAuthenticating(true);
-      await signInWithRedirect(auth, googleProvider);
-      // Page will redirect — code below this line won't execute
+      const result = await signInWithPopup(auth, googleProvider);
+      const firebaseUser = result.user;
+      if (firebaseUser) {
+        const mappedUser: User = {
+          id: firebaseUser.uid,
+          login: firebaseUser.email || "google-user",
+          name: firebaseUser.displayName || firebaseUser.email || "Google User",
+          avatar_url: firebaseUser.photoURL || undefined,
+          provider: "google",
+        };
+        setUser(mappedUser);
+        navigateTo("app");
+      }
     } catch (err) {
-      console.error("Google Auth redirect failed:", err);
+      console.error("Google Auth login process failed:", err);
+    } finally {
       setIsAuthenticating(false);
     }
   };
