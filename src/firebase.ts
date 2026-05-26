@@ -1,5 +1,11 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from "firebase/auth";
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithRedirect,
+  getRedirectResult,
+  signOut as firebaseSignOut
+} from "firebase/auth";
 import { getFirestore, doc, getDocFromServer } from "firebase/firestore";
 import firebaseConfig from "../firebase-applet-config.json";
 
@@ -8,12 +14,15 @@ export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
 export const auth = getAuth();
 export const googleProvider = new GoogleAuthProvider();
 
-// Optional custom parameters for auth prompt sequence
+// Force account selection every time
 googleProvider.setCustomParameters({
   prompt: "select_account"
 });
 
-// Validate connection to Firestore on boot (required by skill guidelines)
+// Export for use in App.tsx
+export { signInWithRedirect, getRedirectResult };
+
+// Validate connection to Firestore on boot
 async function testConnection() {
   try {
     await getDocFromServer(doc(db, "test", "connection"));
