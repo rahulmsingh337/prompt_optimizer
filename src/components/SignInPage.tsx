@@ -9,7 +9,7 @@ interface SignInPageProps {
 
 export default function SignInPage({ onGoogleSignIn, isLoading }: SignInPageProps) {
   const [showDocs, setShowDocs] = useState<boolean>(false);
-  const [showWorkflow, setShowWorkflow] = useState<boolean>(true);
+  const [showWorkflow, setShowWorkflow] = useState<boolean>(false);
 
   return (
     <div className="min-h-screen bg-transparent text-slate-100 flex flex-col justify-between overflow-x-hidden relative">
