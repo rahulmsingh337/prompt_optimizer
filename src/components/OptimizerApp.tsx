@@ -73,7 +73,7 @@ interface DiffChunk {
   value: string;
 }
 
-function computeWordDiff(oldText: string, newText: string): DiffChunk[] {
+export function computeWordDiff(oldText: string, newText: string): DiffChunk[] {
   const oldWords = oldText.match(/\s+|\w+|[^\w\s]+/g) || [];
   const newWords = newText.match(/\s+|\w+|[^\w\s]+/g) || [];
 
