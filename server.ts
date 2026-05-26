@@ -233,7 +233,7 @@ app.post("/api/feedback", (req: any, res: any) => {
 
   // Email validation if email-like string is present in the comment
   if (comment) {
-    const emailLikeRegex = /[^\s]+@[^\s]+/g;
+    const emailLikeRegex = /[^\s]+@[^\s]*/g;
     const matches = comment.match(emailLikeRegex);
     if (matches) {
       const strictEmailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -406,7 +406,7 @@ export function scanRoughRequestForRisks(roughRequest: any): { improvements: str
     // 2. Sensitive Data Exposure - API Keys / Secrets
     const apiKeyPatterns = [
       /AIzaSy[A-Za-z0-9_-]{33}/, // Google Gemini / Firebase API key
-      /sk-[a-zA-Z0-9]{20,}/,     // OpenAI / Anthropic key
+      /sk-[a-zA-Z0-9-]{20,}/,     // OpenAI / Anthropic key
       /\bapi[_-]?key\s*=\s*(['"`])[a-zA-Z0-9._-]{10,}\1/i,
       /\bpass(?:word)?\s*=\s*(['"`])[^'"`]{4,}\1/i,
       /\bclient[_-]?secret\s*=\s*(['"`])[a-zA-Z0-9._-]{10,}\1/i,
