@@ -58,21 +58,44 @@ export function validateGeminiApiKey(apiKey: string | undefined): void {
 }
 
 // Lazy initialized Gemini client helper
-let aiClient: GoogleGenAI | null = null;
-function getGeminiClient(): GoogleGenAI {
-  if (!aiClient) {
-    const apiKey = process.env.GEMINI_API_KEY;
-    validateGeminiApiKey(apiKey);
-    aiClient = new GoogleGenAI({
-      apiKey: apiKey!.trim(),
-      httpOptions: {
-        headers: {
-          'User-Agent': 'aistudio-build',
-        }
-      }
-    });
+// ─────────────────────────────────────────────────────────────────────────────
+// GEMINI KEY ROTATION POOL
+// Rotates across up to 3 API keys when one hits quota/rate limits
+// GEMINI_API_KEY = primary, GEMINI_API_KEY_2 = secondary, GEMINI_API_KEY_3 = tertiary
+// ─────────────────────────────────────────────────────────────────────────────
+let currentKeyIndex = 0;
+
+function getApiKeyPool(): string[] {
+  const keys: string[] = [];
+  const k1 = process.env.GEMINI_API_KEY;
+  const k2 = process.env.GEMINI_API_KEY_2;
+  const k3 = process.env.GEMINI_API_KEY_3;
+  if (k1?.trim()) keys.push(k1.trim());
+  if (k2?.trim()) keys.push(k2.trim());
+  if (k3?.trim()) keys.push(k3.trim());
+  if (keys.length === 0) validateGeminiApiKey(undefined);
+  return keys;
+}
+
+function rotateApiKey(): void {
+  const pool = getApiKeyPool();
+  if (pool.length > 1) {
+    currentKeyIndex = (currentKeyIndex + 1) % pool.length;
+    console.warn(`[NEXA KEY ROTATION] Switched to key index ${currentKeyIndex} (pool: ${pool.length} keys)`);
   }
-  return aiClient;
+}
+
+function getGeminiClient(): GoogleGenAI {
+  const pool = getApiKeyPool();
+  const apiKey = pool[currentKeyIndex % pool.length];
+  return new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      }
+    }
+  });
 }
 
 
@@ -182,9 +205,10 @@ export function checkAndDeductTokens(
 async function callGeminiWithRetry(
   fn: () => Promise<any>,
   maxRetries: number = 5,
-  baseDelayMs: number = 3000
+  baseDelayMs: number = 2000
 ): Promise<any> {
   let lastError: any;
+  const pool = getApiKeyPool();
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
       return await fn();
@@ -194,24 +218,37 @@ async function callGeminiWithRetry(
       const status = err?.status || err?.code || err?.error?.code ||
                      (err?.error?.status === "UNAVAILABLE" ? 503 : 0) ||
                      (err?.error?.status === "RESOURCE_EXHAUSTED" ? 429 : 0);
-      const isRetryable =
-        status === 503 || status === 429 ||
+      const isQuotaError =
+        status === 429 ||
+        errStr.includes("429") ||
+        errStr.includes("RESOURCE_EXHAUSTED") ||
+        errStr.includes("quota") ||
+        errStr.includes("rate limit");
+      const isOverloadError =
+        status === 503 ||
+        errStr.includes("503") ||
         errStr.includes("UNAVAILABLE") ||
         errStr.includes("high demand") ||
-        errStr.includes("overloaded") ||
-        errStr.includes("rate limit") ||
-        errStr.includes("quota") ||
-        errStr.includes("429") ||
-        errStr.includes("503") ||
-        errStr.includes("RESOURCE_EXHAUSTED");
+        errStr.includes("overloaded");
+      const isRetryable = isQuotaError || isOverloadError;
+
       if (!isRetryable || attempt === maxRetries) {
         throw err;
       }
-      // Exponential backoff with jitter: 3s, 6s, 9s, 12s
-      const jitter = Math.random() * 1000;
-      const delay = baseDelayMs * attempt + jitter;
-      console.warn(`[NEXA RETRY] Gemini overload on attempt ${attempt}/${maxRetries}. Retrying in ${Math.round(delay)}ms...`);
-      await new Promise(resolve => setTimeout(resolve, delay));
+
+      // On quota errors: rotate to next key immediately before retrying
+      if (isQuotaError && pool.length > 1) {
+        rotateApiKey();
+        console.warn(`[NEXA KEY ROTATION] Quota hit — rotated key on attempt ${attempt}/${maxRetries}`);
+        // Short delay after key rotation
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } else {
+        // Exponential backoff with jitter for overload errors
+        const jitter = Math.random() * 1000;
+        const delay = baseDelayMs * attempt + jitter;
+        console.warn(`[NEXA RETRY] Gemini overload on attempt ${attempt}/${maxRetries}. Retrying in ${Math.round(delay)}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
     }
   }
   throw lastError;
@@ -702,7 +739,7 @@ Ensure the final optimized prompt is carefully structured, incorporating guideli
 If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with smart defaults. Ensure questions are highly custom-themed (e.g. if request is about a python API, questions should ask about libraries, endpoints, database types rather than generic templates).`;
 
     const result = await callGeminiWithRetry(() => client.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-1.5-flash-8b",
       contents: userPromptText,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -861,7 +898,7 @@ ${answersString}
 Please synthesize the absolute ultimate tailored optimized prompt incorporating all these details perfectly. Apply guidelines, structures, and terminology vocabulary aligned with the requested "${tone || "Professional"}" tone. Since answers are supplied, you MUST return the final optimized prompt! Return clarifyingQuestions as null. Provide rich improvements list, techniquesApplied, and an expert proTip.`;
 
     const result = await callGeminiWithRetry(() => client.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-1.5-flash-8b",
       contents: userPromptText,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -1005,7 +1042,7 @@ app.post("/api/translate", async (req: any, res: any) => {
 "${text}"`;
 
     const result = await callGeminiWithRetry(() => client.models.generateContent({
-      model: "gemini-2.0-flash",
+      model: "gemini-1.5-flash-8b",
       contents: translationPrompt,
       config: {
         systemInstruction: `You are an expert real-time translation engine and language auto-detector.
