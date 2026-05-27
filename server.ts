@@ -814,19 +814,14 @@ app.get("/api/queue-status", (_req: any, res: any) => {
 
 app.post("/api/optimize", async (req: any, res: any) => {
   // ── Cache lookup — serve instantly if seen before ──────────────────────────
-  const roughRequest = req.body?.roughRequest || "";
-  const domain = req.body?.domain || "General";
-  const targetAI = req.body?.targetAI || "ChatGPT";
-  const modeOverride = req.body?.mode || "AUTO";
-  const cacheKey = getCacheKey(roughRequest, domain, targetAI, modeOverride);
+  const { targetAI, modePreference, domain, roughRequest, tone, userId, email } = req.body;
+  const modeOverride = modePreference || "AUTO";
+  const cacheKey = getCacheKey(roughRequest || "", domain || "General", targetAI || "ChatGPT", modeOverride);
   const cached = getCached(cacheKey);
   if (cached) {
     console.info("[NEXA CACHE] Cache hit — serving instantly");
     return res.json({ ...cached, _cached: true });
   }
-
-
-  const { targetAI, modePreference, domain, roughRequest, tone, userId, email } = req.body;
 
   if (!roughRequest || !roughRequest.trim()) {
     return res.status(400).json({ error: "missing_content", message: "Rough request textarea cannot be empty." });
