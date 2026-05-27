@@ -3,6 +3,7 @@ import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
+import Groq from "groq-sdk";
 
 dotenv.config();
 
@@ -98,6 +99,76 @@ function getGeminiClient(): GoogleGenAI {
   });
 }
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GROQ CLIENT — Primary AI engine (30 RPM free, much faster than Gemini)
+// Falls back to Gemini key pool if Groq quota is exceeded
+// ─────────────────────────────────────────────────────────────────────────────
+function getGroqClient(): Groq | null {
+  const key = process.env.GROQ_API_KEY?.trim();
+  if (!key) return null;
+  return new Groq({ apiKey: key });
+}
+
+// Unified LLM call: tries Groq first, falls back to Gemini on any error
+async function callLLM(params: {
+  systemInstruction: string;
+  userPrompt: string;
+  temperature?: number;
+}): Promise<string> {
+  const { systemInstruction, userPrompt, temperature = 0.2 } = params;
+
+  // ── Try Groq first ──────────────────────────────────────────────────
+  const groq = getGroqClient();
+  if (groq) {
+    try {
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages: [
+          { role: "system", content: systemInstruction },
+          { role: "user", content: userPrompt }
+        ],
+        temperature,
+        max_tokens: 4096,
+        response_format: { type: "json_object" },
+      });
+      const text = completion.choices[0]?.message?.content || "";
+      if (text.trim()) {
+        console.info("[NEXA LLM] Groq responded successfully");
+        return text;
+      }
+    } catch (groqErr: any) {
+      const isQuota = groqErr?.status === 429 ||
+        JSON.stringify(groqErr).includes("rate_limit") ||
+        JSON.stringify(groqErr).includes("quota");
+      if (isQuota) {
+        console.warn("[NEXA LLM] Groq quota hit — falling back to Gemini");
+      } else {
+        console.warn("[NEXA LLM] Groq error — falling back to Gemini:", groqErr?.message);
+      }
+    }
+  }
+
+  // ── Fallback: Gemini key pool ───────────────────────────────────────
+  const client = getGeminiClient();
+  const result = await queuedGeminiCall(() => callGeminiWithRetry(() =>
+    client.models.generateContent({
+      model: "gemini-2.0-flash",
+      contents: userPrompt,
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        temperature,
+      }
+    })
+  ));
+  const text = result.text;
+  if (!text?.trim()) {
+    throw new Error("EMPTY_OUTPUT: Both Groq and Gemini returned blank content.");
+  }
+  console.info("[NEXA LLM] Gemini fallback responded successfully");
+  return text;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REQUEST QUEUE ENGINE
@@ -868,19 +939,13 @@ Ensure the final optimized prompt is carefully structured, incorporating guideli
 
 If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with smart defaults. Ensure questions are highly custom-themed (e.g. if request is about a python API, questions should ask about libraries, endpoints, database types rather than generic templates).`;
 
-    const result = await queuedGeminiCall(() => callGeminiWithRetry(() => client.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: userPromptText,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        temperature: 0.2,
-      }
-    })));
-
-    const textOutput = result.text;
+    const textOutput = await callLLM({
+      systemInstruction: SYSTEM_INSTRUCTION,
+      userPrompt: userPromptText,
+      temperature: 0.2,
+    });
     if (!textOutput || !textOutput.trim()) {
-      throw new Error("EMPTY_GEMINI_OUTPUT: The generative model completed successfully but returned blank content. This may indicate a temporary backend glitch or safety-driven truncation.");
+      throw new Error("EMPTY_OUTPUT: The generative model completed successfully but returned blank content. This may indicate a temporary backend glitch or safety-driven truncation.");
     }
 
     try {
@@ -1027,19 +1092,13 @@ ${answersString}
 
 Please synthesize the absolute ultimate tailored optimized prompt incorporating all these details perfectly. Apply guidelines, structures, and terminology vocabulary aligned with the requested "${tone || "Professional"}" tone. Since answers are supplied, you MUST return the final optimized prompt! Return clarifyingQuestions as null. Provide rich improvements list, techniquesApplied, and an expert proTip.`;
 
-    const result = await queuedGeminiCall(() => callGeminiWithRetry(() => client.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: userPromptText,
-      config: {
-        systemInstruction: SYSTEM_INSTRUCTION,
-        responseMimeType: "application/json",
-        temperature: 0.1,
-      }
-    })));
-
-    const textOutput = result.text;
+    const textOutput = await callLLM({
+      systemInstruction: SYSTEM_INSTRUCTION,
+      userPrompt: userPromptText,
+      temperature: 0.1,
+    });
     if (!textOutput || !textOutput.trim()) {
-      throw new Error("EMPTY_GEMINI_OUTPUT: Answers synthesize generated blank response. This may indicate safety blocks or connection resets.");
+      throw new Error("EMPTY_OUTPUT: Answers synthesize generated blank response.");
     }
 
     try {
@@ -1171,11 +1230,8 @@ app.post("/api/translate", async (req: any, res: any) => {
     const translationPrompt = `Detect the language of this text and translate it into clear, fluent English:
 "${text}"`;
 
-    const result = await queuedGeminiCall(() => callGeminiWithRetry(() => client.models.generateContent({
-      model: "gemini-2.0-flash",
-      contents: translationPrompt,
-      config: {
-        systemInstruction: `You are an expert real-time translation engine and language auto-detector.
+    const textOutput = await callLLM({
+      systemInstruction: `You are an expert real-time translation engine and language auto-detector.
 Your task is to:
 1. Auto-detect the language of the provided user text.
 2. Translate the user text accurately and fluently into English. Keep any special formatting or structural indicators intact. If the input is already in English, return the detected language as 'English' and the original text as the translated text.
@@ -1184,12 +1240,9 @@ Your task is to:
   "detectedLanguage": "Name of the detected language (e.g. Spanish, German, Mandarin)",
   "translatedText": "The final translated English text"
 }`,
-        responseMimeType: "application/json",
-        temperature: 0.1,
-      }
-    })));
-
-    const textOutput = result.text;
+      userPrompt: translationPrompt,
+      temperature: 0.1,
+    });
     if (!textOutput || !textOutput.trim()) {
       throw new Error("EMPTY_TRANSLATION_OUTPUT: Translation engine returned blank content.");
     }
