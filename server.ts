@@ -3,7 +3,6 @@ import path from "path";
 import fs from "fs";
 import dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
-import { createServer as createViteServer } from "vite";
 
 dotenv.config();
 
@@ -982,7 +981,10 @@ Your task is to:
 // ----------------------------------------------------
 
 if (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test" && !process.env.VITEST) {
+  // Dynamic import keeps Vite/Rollup out of the production bundle entirely
+  // This prevents @rollup/rollup-linux-x64-gnu missing module error on Vercel
   (async () => {
+    const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: "spa",
