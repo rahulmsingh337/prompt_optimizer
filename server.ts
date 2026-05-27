@@ -173,6 +173,44 @@ export function checkAndDeductTokens(
 
 
 // Endpoint to retrieve active user daily token allocation status
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GEMINI RETRY ENGINE
+// Retries on 503 UNAVAILABLE with exponential backoff (2s, 4s, 6s)
+// Silently recovers from demand spikes without surfacing errors to users
+// ─────────────────────────────────────────────────────────────────────────────
+async function callGeminiWithRetry(
+  fn: () => Promise<any>,
+  maxRetries: number = 3,
+  baseDelayMs: number = 2000
+): Promise<any> {
+  let lastError: any;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn();
+    } catch (err: any) {
+      lastError = err;
+      const status = err?.status || err?.code || err?.error?.code;
+      const isRetryable = status === 503 || status === 429 ||
+        (typeof err?.message === "string" && (
+          err.message.includes("UNAVAILABLE") ||
+          err.message.includes("high demand") ||
+          err.message.includes("overloaded") ||
+          err.message.includes("rate limit") ||
+          err.message.includes("quota")
+        ));
+      if (!isRetryable || attempt === maxRetries) {
+        throw err;
+      }
+      const delay = baseDelayMs * attempt;
+      console.warn(`[NEXA RETRY] Gemini 503/429 on attempt ${attempt}/${maxRetries}. Retrying in ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  throw lastError;
+}
+
+
 app.get("/api/token-status", (req: any, res: any) => {
   const { userId, email } = req.query;
   const cleanUserId = userId ? String(userId) : "anonymous_sandbox_guest";
@@ -656,15 +694,15 @@ Ensure the final optimized prompt is carefully structured, incorporating guideli
 
 If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with smart defaults. Ensure questions are highly custom-themed (e.g. if request is about a python API, questions should ask about libraries, endpoints, database types rather than generic templates).`;
 
-    const result = await client.models.generateContent({
-      model: "gemini-3.5-flash",
+    const result = await callGeminiWithRetry(() => client.models.generateContent({
+      model: "gemini-2.0-flash",
       contents: userPromptText,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
         temperature: 0.2,
       }
-    });
+    }));
 
     const textOutput = result.text;
     if (!textOutput || !textOutput.trim()) {
@@ -815,15 +853,15 @@ ${answersString}
 
 Please synthesize the absolute ultimate tailored optimized prompt incorporating all these details perfectly. Apply guidelines, structures, and terminology vocabulary aligned with the requested "${tone || "Professional"}" tone. Since answers are supplied, you MUST return the final optimized prompt! Return clarifyingQuestions as null. Provide rich improvements list, techniquesApplied, and an expert proTip.`;
 
-    const result = await client.models.generateContent({
-      model: "gemini-3.5-flash",
+    const result = await callGeminiWithRetry(() => client.models.generateContent({
+      model: "gemini-2.0-flash",
       contents: userPromptText,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
         responseMimeType: "application/json",
         temperature: 0.1,
       }
-    });
+    }));
 
     const textOutput = result.text;
     if (!textOutput || !textOutput.trim()) {
@@ -959,8 +997,8 @@ app.post("/api/translate", async (req: any, res: any) => {
     const translationPrompt = `Detect the language of this text and translate it into clear, fluent English:
 "${text}"`;
 
-    const result = await client.models.generateContent({
-      model: "gemini-3.5-flash",
+    const result = await callGeminiWithRetry(() => client.models.generateContent({
+      model: "gemini-2.0-flash",
       contents: translationPrompt,
       config: {
         systemInstruction: `You are an expert real-time translation engine and language auto-detector.
@@ -975,7 +1013,7 @@ Your task is to:
         responseMimeType: "application/json",
         temperature: 0.1,
       }
-    });
+    }));
 
     const textOutput = result.text;
     if (!textOutput || !textOutput.trim()) {
