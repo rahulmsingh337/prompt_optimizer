@@ -495,36 +495,69 @@ export function scanRoughRequestForRisks(roughRequest: any): { improvements: str
 export function resilientJsonParse(rawText: string): any {
   let cleaned = rawText.trim();
 
-  // 1. Remove standard or nested markdown code blocks (e.g. ```json ... ```)
-  if (cleaned.startsWith("```")) {
-    cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  }
-  cleaned = cleaned.trim();
+  // 1. Remove markdown code fences (```json ... ``` or ``` ... ```)
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "").trim();
 
+  // 2. Remove any trailing prose after the closing brace/bracket
+  // This handles Gemini appending explanatory text after the JSON object
+  const lastBrace  = cleaned.lastIndexOf("}");
+  const lastBracket = cleaned.lastIndexOf("]");
+  const lastClose  = Math.max(lastBrace, lastBracket);
+  if (lastClose !== -1 && lastClose < cleaned.length - 1) {
+    cleaned = cleaned.substring(0, lastClose + 1).trim();
+  }
+
+  // 3. Remove any leading prose before the opening brace/bracket
+  const firstBrace   = cleaned.indexOf("{");
+  const firstBracket = cleaned.indexOf("[");
+  const firstOpen    = firstBrace === -1 ? firstBracket
+                     : firstBracket === -1 ? firstBrace
+                     : Math.min(firstBrace, firstBracket);
+  if (firstOpen > 0) {
+    cleaned = cleaned.substring(firstOpen).trim();
+  }
+
+  // 4. Try clean parse
   try {
     return JSON.parse(cleaned);
   } catch (firstError: any) {
-    console.warn(`[NEXA RECOVERY ENGINE] Initial JSON parse failed. Attempting structural recovery... Reason: ${firstError.message}`);
+    console.warn(`[NEXA RECOVERY ENGINE] Initial parse failed: ${firstError.message}`);
 
-    // Clean trailing commas in objects/arrays which are common in LLM JSON generation
+    // 5. Strip trailing commas (common LLM generation artifact)
     let recovered = cleaned.replace(/,\s*([}\]])/g, "$1");
-
     try {
       return JSON.parse(recovered);
-    } catch (secondError) {
-      // Find the first outer '{' and the last outer '}'
-      const startIdx = cleaned.indexOf("{");
-      const endIdx = cleaned.lastIndexOf("}");
-      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
-        const sliced = cleaned.substring(startIdx, endIdx + 1);
-        try {
-          return JSON.parse(sliced);
-        } catch (sliceError) {
-          throw firstError; // Throw the first descriptive parsing exception to preserve the root context
-        }
-      }
-      throw firstError;
+    } catch {
+      // ignore
     }
+
+    // 6. Escape unescaped newlines inside string values
+    let escaped = recovered.replace(
+      /"((?:[^"\\]|\\.)*)"/g,
+      (_match: string, inner: string) => `"${inner.replace(/\n/g, "\\n").replace(/\r/g, "\\r")}"`
+    );
+    try {
+      return JSON.parse(escaped);
+    } catch {
+      // ignore
+    }
+
+    // 7. Last resort: extract first complete JSON object/array
+    const startIdx = cleaned.indexOf("{");
+    const endIdx   = cleaned.lastIndexOf("}");
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      try {
+        return JSON.parse(cleaned.substring(startIdx, endIdx + 1));
+      } catch {
+        // ignore
+      }
+    }
+
+    // 8. Nothing worked — throw original error with full context
+    throw new Error(
+      `Structured output synthesis failed to parse. Reason: ${firstError.message}. ` +
+      `Please submit a slightly revised prompt.`
+    );
   }
 }
 
