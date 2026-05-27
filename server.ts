@@ -739,7 +739,7 @@ Ensure the final optimized prompt is carefully structured, incorporating guideli
 If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with smart defaults. Ensure questions are highly custom-themed (e.g. if request is about a python API, questions should ask about libraries, endpoints, database types rather than generic templates).`;
 
     const result = await callGeminiWithRetry(() => client.models.generateContent({
-      model: "gemini-1.5-flash-8b",
+      model: "gemini-2.0-flash",
       contents: userPromptText,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -898,7 +898,7 @@ ${answersString}
 Please synthesize the absolute ultimate tailored optimized prompt incorporating all these details perfectly. Apply guidelines, structures, and terminology vocabulary aligned with the requested "${tone || "Professional"}" tone. Since answers are supplied, you MUST return the final optimized prompt! Return clarifyingQuestions as null. Provide rich improvements list, techniquesApplied, and an expert proTip.`;
 
     const result = await callGeminiWithRetry(() => client.models.generateContent({
-      model: "gemini-1.5-flash-8b",
+      model: "gemini-2.0-flash",
       contents: userPromptText,
       config: {
         systemInstruction: SYSTEM_INSTRUCTION,
@@ -1042,7 +1042,7 @@ app.post("/api/translate", async (req: any, res: any) => {
 "${text}"`;
 
     const result = await callGeminiWithRetry(() => client.models.generateContent({
-      model: "gemini-1.5-flash-8b",
+      model: "gemini-2.0-flash",
       contents: translationPrompt,
       config: {
         systemInstruction: `You are an expert real-time translation engine and language auto-detector.
