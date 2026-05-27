@@ -181,8 +181,8 @@ export function checkAndDeductTokens(
 // ─────────────────────────────────────────────────────────────────────────────
 async function callGeminiWithRetry(
   fn: () => Promise<any>,
-  maxRetries: number = 3,
-  baseDelayMs: number = 2000
+  maxRetries: number = 5,
+  baseDelayMs: number = 3000
 ): Promise<any> {
   let lastError: any;
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -190,20 +190,27 @@ async function callGeminiWithRetry(
       return await fn();
     } catch (err: any) {
       lastError = err;
-      const status = err?.status || err?.code || err?.error?.code;
-      const isRetryable = status === 503 || status === 429 ||
-        (typeof err?.message === "string" && (
-          err.message.includes("UNAVAILABLE") ||
-          err.message.includes("high demand") ||
-          err.message.includes("overloaded") ||
-          err.message.includes("rate limit") ||
-          err.message.includes("quota")
-        ));
+      const errStr = JSON.stringify(err?.error || err?.message || err || "");
+      const status = err?.status || err?.code || err?.error?.code ||
+                     (err?.error?.status === "UNAVAILABLE" ? 503 : 0) ||
+                     (err?.error?.status === "RESOURCE_EXHAUSTED" ? 429 : 0);
+      const isRetryable =
+        status === 503 || status === 429 ||
+        errStr.includes("UNAVAILABLE") ||
+        errStr.includes("high demand") ||
+        errStr.includes("overloaded") ||
+        errStr.includes("rate limit") ||
+        errStr.includes("quota") ||
+        errStr.includes("429") ||
+        errStr.includes("503") ||
+        errStr.includes("RESOURCE_EXHAUSTED");
       if (!isRetryable || attempt === maxRetries) {
         throw err;
       }
-      const delay = baseDelayMs * attempt;
-      console.warn(`[NEXA RETRY] Gemini 503/429 on attempt ${attempt}/${maxRetries}. Retrying in ${delay}ms...`);
+      // Exponential backoff with jitter: 3s, 6s, 9s, 12s
+      const jitter = Math.random() * 1000;
+      const delay = baseDelayMs * attempt + jitter;
+      console.warn(`[NEXA RETRY] Gemini overload on attempt ${attempt}/${maxRetries}. Retrying in ${Math.round(delay)}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -790,7 +797,7 @@ If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with s
       friendlyMessage = "Authentication failure: The provided GEMINI_API_KEY was rejected as invalid by Google AI Studio. Please verify the active credentials.";
     } else if (errMsg.includes("quota") || errMsg.includes("429") || errMsg.includes("LimitExceeded") || errMsg.includes("exhausted") || errMsg.includes("overloaded")) {
       errorType = "rate_limited";
-      friendlyMessage = "High service traffic: Gemini API is overloaded or rate limit quota has been temporarily exceeded (HTTP 429). Please wait 10 seconds and submit again.";
+      friendlyMessage = "⏳ The AI model is experiencing high demand right now. Your request is being retried automatically — please wait a moment and try again if it persists.";
     } else if (errMsg.includes("safety") || errMsg.includes("blocked") || errMsg.includes("candidate was blocked")) {
       errorType = "content_blocked";
       friendlyMessage = "Security / Safety guard filter: The target query or prompt layout triggered safety classifiers and was blocked. Please adjust the phrasing (such as avoiding sensitive/offensive mock words) and try again.";
