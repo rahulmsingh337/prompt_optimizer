@@ -1693,7 +1693,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                     </div>
                     <div className="relative group/prompt">
                       {enableHighlighting ? (
-                        <pre className={`language-${highlightLanguage} p-4 pr-12 rounded-xl bg-[#030610]/40 border border-slate-950/50 text-xs text-slate-200 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-72 select-all select-none backdrop-blur-sm`}>
+                        <pre className={`language-${highlightLanguage} p-4 pr-12 rounded-xl bg-[#030610]/40 border border-slate-950/50 text-sm text-slate-200 overflow-auto whitespace-pre-wrap leading-relaxed min-h-[400px] max-h-[60vh] select-all select-none backdrop-blur-sm`}>
                           <code
                             className={`language-${highlightLanguage}`}
                             dangerouslySetInnerHTML={{
@@ -1709,7 +1709,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                           />
                         </pre>
                       ) : (
-                        <pre className="p-4 pr-12 rounded-xl bg-[#030610]/40 border border-slate-950/50 text-xs text-slate-200 overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-72 select-all select-none backdrop-blur-sm font-sans">
+                        <pre className="p-4 pr-12 rounded-xl bg-[#030610]/40 border border-slate-950/50 text-sm text-slate-200 overflow-auto whitespace-pre-wrap leading-relaxed min-h-[400px] max-h-[60vh] select-all select-none backdrop-blur-sm font-sans">
                           <code className="text-slate-200">{response.optimizedPrompt || ""}</code>
                         </pre>
                       )}
@@ -2438,9 +2438,9 @@ Just share your rough prompt and I'll handle the rest!`}
                     </button>
                   </div>
 
-                  <div className="flex-1 relative group/fullscreen-pre min-h-[350px]">
+                  <div className="flex-1 relative group/fullscreen-pre min-h-[500px]">
                     {enableHighlighting ? (
-                      <pre className={`language-${highlightLanguage} w-full h-full p-6 pr-12 rounded-xl bg-[#030610]/60 border border-slate-950/70 text-sm sm:text-base text-slate-205 overflow-auto whitespace-pre-wrap leading-relaxed select-all font-mono backdrop-blur-sm shadow-inner`}>
+                      <pre className={`language-${highlightLanguage} w-full h-full p-6 pr-12 rounded-xl bg-[#030610]/60 border border-slate-950/70 text-sm sm:text-base text-slate-100 overflow-auto whitespace-pre-wrap leading-loose select-all font-mono backdrop-blur-sm shadow-inner`}>
                         <code
                           className={`language-${highlightLanguage}`}
                           dangerouslySetInnerHTML={{
@@ -2456,7 +2456,7 @@ Just share your rough prompt and I'll handle the rest!`}
                         />
                       </pre>
                     ) : (
-                      <pre className="w-full h-full p-6 pr-12 rounded-xl bg-[#030610]/60 border border-slate-950/70 text-sm sm:text-base text-slate-205 overflow-auto whitespace-pre-wrap leading-relaxed select-all font-sans backdrop-blur-sm shadow-inner">
+                      <pre className="w-full h-full p-6 pr-12 rounded-xl bg-[#030610]/60 border border-slate-950/70 text-sm sm:text-base text-slate-100 overflow-auto whitespace-pre-wrap leading-loose select-all font-sans backdrop-blur-sm shadow-inner">
                         <code className="text-slate-205">{response.optimizedPrompt || ""}</code>
                       </pre>
                     )}
