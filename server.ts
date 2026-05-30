@@ -875,6 +875,119 @@ export function logServerError(context: string, error: any, requestPayload: any)
 
 // AI Optimize Entrypoint (Evaluates mode and decides whether to produce Questions or generate Prompt)
 
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HEALTH CHECK + ERROR TRACKING ENGINE
+// GET /api/health  — returns full system status
+// Errors are logged with full context for debugging
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ErrorLog {
+  id: string;
+  timestamp: string;
+  endpoint: string;
+  method: string;
+  error: string;
+  stack?: string;
+  userAgent?: string;
+  ip?: string;
+}
+
+const errorLog: ErrorLog[] = [];
+const MAX_ERROR_LOG = 100;
+
+export function logServerError(
+  error: unknown,
+  endpoint: string,
+  method: string,
+  req?: any
+): void {
+  const entry: ErrorLog = {
+    id: `err_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    timestamp: new Date().toISOString(),
+    endpoint,
+    method,
+    error: error instanceof Error ? error.message : String(error),
+    stack: error instanceof Error ? error.stack?.split("\n").slice(0, 4).join(" | ") : undefined,
+    userAgent: req?.headers?.["user-agent"]?.substring(0, 100),
+    ip: req?.headers?.["x-forwarded-for"] || req?.socket?.remoteAddress,
+  };
+  errorLog.unshift(entry);
+  if (errorLog.length > MAX_ERROR_LOG) errorLog.pop();
+  console.error(`[NEXA ERROR] ${method} ${endpoint}: ${entry.error}`);
+}
+
+// Health check endpoint
+app.get("/api/health", async (_req: any, res: any) => {
+  const startTime = Date.now();
+
+  // Check Groq connectivity
+  let groqStatus = "unavailable";
+  let groqLatencyMs = -1;
+  const groqKey = process.env.GROQ_API_KEY?.trim();
+  if (groqKey) {
+    try {
+      const t = Date.now();
+      const r = await fetch("https://api.groq.com/openai/v1/models", {
+        headers: { Authorization: `Bearer ${groqKey}` },
+        signal: AbortSignal.timeout(5000),
+      });
+      groqLatencyMs = Date.now() - t;
+      groqStatus = r.ok ? "healthy" : "degraded";
+    } catch {
+      groqStatus = "unreachable";
+    }
+  }
+
+  // Check Gemini connectivity
+  let geminiStatus = "unavailable";
+  let geminiLatencyMs = -1;
+  const geminiKey = process.env.GEMINI_API_KEY?.trim();
+  if (geminiKey) {
+    try {
+      const t = Date.now();
+      const r = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}`,
+        { signal: AbortSignal.timeout(5000) }
+      );
+      geminiLatencyMs = Date.now() - t;
+      geminiStatus = r.ok ? "healthy" : "degraded";
+    } catch {
+      geminiStatus = "unreachable";
+    }
+  }
+
+  const keyPool = getApiKeyPool();
+  const overall =
+    groqStatus === "healthy" || geminiStatus === "healthy" ? "healthy" :
+    groqStatus === "degraded" || geminiStatus === "degraded" ? "degraded" : "down";
+
+  res.json({
+    status: overall,
+    timestamp: new Date().toISOString(),
+    uptimeSeconds: Math.floor(process.uptime()),
+    version: process.env.npm_package_version || "1.0.0",
+    services: {
+      groq: { status: groqStatus, latencyMs: groqLatencyMs },
+      gemini: {
+        status: geminiStatus,
+        latencyMs: geminiLatencyMs,
+        keyPoolSize: keyPool.length,
+        activeKeyIndex: currentKeyIndex % keyPool.length,
+      },
+    },
+    queue: getQueueStatus(),
+    cache: getCacheStats(),
+    recentErrors: errorLog.slice(0, 5).map(e => ({
+      id: e.id,
+      timestamp: e.timestamp,
+      endpoint: e.endpoint,
+      error: e.error,
+    })),
+    responseTimeMs: Date.now() - startTime,
+  });
+});
+
 // Queue + Cache status endpoint
 app.get("/api/queue-status", (_req: any, res: any) => {
   res.json({
