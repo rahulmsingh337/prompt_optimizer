@@ -1715,6 +1715,80 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                         )}
                       </button>
                     </div>
+
+                    {/* ── LAUNCH ON AI PLATFORM BUTTONS ─────────────────── */}
+                    <div className="mt-4 flex flex-col gap-2">
+                      <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider font-bold">
+                        Open Prompt In:
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+
+                        {/* ChatGPT */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const prompt = response.optimizedPrompt || "";
+                            if (!prompt.trim()) return;
+                            navigator.clipboard.writeText(prompt).catch(() => {});
+                            const encoded = encodeURIComponent(prompt.slice(0, 2000));
+                            window.open(`https://chatgpt.com/?q=${encoded}`, "_blank", "noopener,noreferrer");
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#10a37f]/10 hover:bg-[#10a37f]/20 border border-[#10a37f]/30 hover:border-[#10a37f]/60 text-[#10a37f] text-xs font-semibold font-mono transition-all duration-200 cursor-pointer select-none group"
+                          title="Copy prompt and open in ChatGPT"
+                        >
+                          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.759a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z"/>
+                          </svg>
+                          <span>ChatGPT</span>
+                          <span className="text-[9px] text-[#10a37f]/60 group-hover:text-[#10a37f]/80 font-normal">↗</span>
+                        </button>
+
+                        {/* Claude */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const prompt = response.optimizedPrompt || "";
+                            if (!prompt.trim()) return;
+                            navigator.clipboard.writeText(prompt).catch(() => {});
+                            window.open(`https://claude.ai/new`, "_blank", "noopener,noreferrer");
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#da7756]/10 hover:bg-[#da7756]/20 border border-[#da7756]/30 hover:border-[#da7756]/60 text-[#da7756] text-xs font-semibold font-mono transition-all duration-200 cursor-pointer select-none group"
+                          title="Copy prompt and open in Claude — paste with Ctrl+V"
+                        >
+                          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17.304 1.01C13.935 1.01 11.61 2.973 10.31 5.08c-.5-.327-1.103-.59-1.83-.723-.977-.178-2.031-.09-3.078.417C3.003 6.053 1.7 8.46 1.928 11.45c.055.718.224 1.458.516 2.188l.026.065c.37.93.574 1.647.574 2.27 0 .55-.17.973-.524 1.363-.493.543-.636 1.287-.448 2.07.185.769.65 1.358 1.19 1.698.782.49 1.643.537 2.283.266.377-.16.757-.468 1.052-.956.174-.286.34-.68.442-1.226.105-.556.26-.886.422-1.097.133-.174.3-.295.54-.395.228-.095.43-.102.626-.015.198.088.345.261.446.502.17.408.22.978.17 1.718-.042.622.056 1.218.323 1.728.32.613.847 1.025 1.537 1.143 1.06.183 1.955-.185 2.533-.825.538-.595.8-1.35.786-2.097-.01-.573-.165-1.063-.302-1.404-.244-.608-.38-1.105-.38-1.55 0-.452.14-.903.4-1.362.357-.626.923-1.198 1.628-1.684 1.65-1.14 2.63-2.774 2.818-4.471.166-1.512-.267-2.834-.973-3.795-.718-.98-1.747-1.62-2.863-1.852-.338-.07-.682-.1-1.025-.1zm-4.19 7.673a.75.75 0 0 1 .96.456l2.435 6.968.842-2.265a.75.75 0 0 1 .703-.488h2.43a.75.75 0 0 1 0 1.5h-1.852l-1.414 3.802a.75.75 0 0 1-1.42-.036l-2.398-6.861-.917 2.194a.75.75 0 0 1-.69.457H9.903a.75.75 0 1 1 0-1.5h1.408l1.547-3.698a.75.75 0 0 1 .256-.529z"/>
+                          </svg>
+                          <span>Claude</span>
+                          <span className="text-[9px] text-[#da7756]/60 group-hover:text-[#da7756]/80 font-normal">↗ paste prompt</span>
+                        </button>
+
+                        {/* Gemini */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const prompt = response.optimizedPrompt || "";
+                            if (!prompt.trim()) return;
+                            navigator.clipboard.writeText(prompt).catch(() => {});
+                            const encoded = encodeURIComponent(prompt.slice(0, 2000));
+                            window.open(`https://gemini.google.com/app?q=${encoded}`, "_blank", "noopener,noreferrer");
+                          }}
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#4285f4]/10 hover:bg-[#4285f4]/20 border border-[#4285f4]/30 hover:border-[#4285f4]/60 text-[#4285f4] text-xs font-semibold font-mono transition-all duration-200 cursor-pointer select-none group"
+                          title="Copy prompt and open in Gemini"
+                        >
+                          <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 24A14.232 14.232 0 0 1 9.7 9.7 14.235 14.235 0 0 1 24 12a14.232 14.232 0 0 1-14.3 2.3A14.235 14.235 0 0 1 12 24zm0-24a14.232 14.232 0 0 1 2.3 14.3A14.235 14.235 0 0 1 0 12 14.232 14.232 0 0 1 14.3 9.7 14.235 14.235 0 0 1 12 0z"/>
+                          </svg>
+                          <span>Gemini</span>
+                          <span className="text-[9px] text-[#4285f4]/60 group-hover:text-[#4285f4]/80 font-normal">↗</span>
+                        </button>
+
+                      </div>
+                      <p className="text-[9px] font-mono text-slate-600 leading-normal">
+                        Prompt is copied to clipboard automatically. Claude requires manual paste (Ctrl+V / ⌘+V).
+                      </p>
+                    </div>
+                    {/* ── END PLATFORM BUTTONS ───────────────────────────── */}
+
                   </div>
                 ) : (
                   /* GORGEOUS INSIGHTFUL SIDE-BY-SIDE DIFF PANELS */
