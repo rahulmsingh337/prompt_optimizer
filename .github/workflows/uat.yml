@@ -1,0 +1,82 @@
+name: NEXA UAT — Pre-Deploy Checks
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  uat-tests:
+    name: Run UAT Test Suite (82 tests)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Create test environment
+        run: |
+          echo "GEMINI_API_KEY=AIzaSyTestKeyForUnitTestingPurposesOnly1234" > .env
+          echo "VITEST=true" >> .env
+          echo "NODE_ENV=test" >> .env
+
+      - name: Run UAT test suite
+        run: VITEST=true npx vitest run tests/uat_full.test.ts --reporter=verbose
+        env:
+          VITEST: true
+          NODE_ENV: test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: uat-test-results
+          path: |
+            tests/
+          retention-days: 7
+
+  health-check:
+    name: Production Health Check
+    runs-on: ubuntu-latest
+    needs: uat-tests
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Wait for Vercel deployment
+        run: sleep 60
+
+      - name: Check /api/health endpoint
+        run: |
+          RESPONSE=$(curl -sf --max-time 15 \
+            "https://prompt-optimizer-rouge-one.vercel.app/api/health" || echo "FAILED")
+          echo "Health response: $RESPONSE"
+          if echo "$RESPONSE" | grep -q '"status":"healthy"\|"status":"degraded"'; then
+            echo "✅ Health check passed"
+          else
+            echo "❌ Health check failed or timed out"
+            echo "$RESPONSE"
+            exit 1
+          fi
+
+      - name: Check frontend loads
+        run: |
+          STATUS=$(curl -so /dev/null -w "%{http_code}" \
+            --max-time 15 \
+            "https://prompt-optimizer-rouge-one.vercel.app/")
+          echo "Frontend HTTP status: $STATUS"
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Frontend loads correctly"
+          else
+            echo "❌ Frontend returned $STATUS"
+            exit 1
+          fi
