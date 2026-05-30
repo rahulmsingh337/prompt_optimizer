@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { HelpCircle, Key, Network } from "lucide-react";
-import SwimlaneWorkflow from "./SwimlaneWorkflow";
+import { HelpCircle, Key } from "lucide-react";
 
 interface SignInPageProps {
   onGoogleSignIn: () => void;
@@ -9,7 +8,6 @@ interface SignInPageProps {
 
 export default function SignInPage({ onGoogleSignIn, isLoading }: SignInPageProps) {
   const [showDocs, setShowDocs] = useState<boolean>(false);
-  const [showWorkflow, setShowWorkflow] = useState<boolean>(false);
 
   return (
     <div className="min-h-screen bg-transparent text-slate-100 flex flex-col justify-between overflow-x-hidden relative">
