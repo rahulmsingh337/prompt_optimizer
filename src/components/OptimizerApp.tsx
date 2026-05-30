@@ -55,7 +55,6 @@ import {
   Languages
 } from "lucide-react";
 import { User as UserType, OptimizedResponse, QueryState, HistoryItem, UserPreferences } from "../types";
-import SwimlaneWorkflow from "./SwimlaneWorkflow";
 import { 
   collection, 
   doc, 
@@ -348,7 +347,6 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
 
   // Welcome state modal / drawer to display welcome on "hello" button activation
   const [showWelcome, setShowWelcome] = useState<boolean>(true);
-  const [showWorkflowModal, setShowWorkflowModal] = useState<boolean>(false);
 
   // Anonymous rating and feedback state variables
   const [feedbackRating, setFeedbackRating] = useState<"up" | "down" | null>(null);
@@ -892,16 +890,6 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
             title="Open About NEXA system handbook"
           >
             About Us
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setShowWorkflowModal(true)}
-            className="px-2.5 py-1 text-xs font-mono font-medium rounded-lg border border-indigo-500/20 text-indigo-400 bg-slate-950 hover:bg-indigo-500/10 transition-colors cursor-pointer select-none flex items-center gap-1.5 shrink-0"
-            title="Open interactive DevOps Swimlane Workflow"
-          >
-            <Network className="w-3.5 h-3.5" />
-            <span>Workflow</span>
           </button>
 
           {/* Token usage widget */}
@@ -2299,26 +2287,6 @@ Just share your rough prompt and I'll handle the rest!`}
               >
                 Acknowledge & Access Optimizer
               </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* WORKFLOW BLUEPRINT DIALOG OVERLAY */}
-      {showWorkflowModal && (
-        <div className="fixed inset-0 bg-[#000]/70 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="max-w-4xl w-full bg-slate-950/70 border border-[#1e293b]/60 p-5 md:p-6 rounded-2xl shadow-2xl relative overflow-hidden max-h-[95vh] overflow-y-auto backdrop-blur-xl">
-            <div className="absolute top-4 right-4 z-20">
-              <button
-                type="button"
-                onClick={() => setShowWorkflowModal(false)}
-                className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-850 text-slate-400 hover:text-slate-100 text-[10px] font-mono border border-slate-800 transition-colors cursor-pointer select-none"
-              >
-                Close View [x]
-              </button>
-            </div>
-            <div className="pt-6">
-              <SwimlaneWorkflow />
             </div>
           </div>
         </div>
