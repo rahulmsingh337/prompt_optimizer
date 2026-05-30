@@ -1691,11 +1691,12 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                         )}
                       </button>
                     </div>
-                    <div className="relative group/prompt">
+                    <div className="relative group/prompt overflow-hidden w-full min-w-0">
                       {enableHighlighting ? (
-                        <pre className={`language-${highlightLanguage} p-4 pr-12 rounded-xl bg-[#030610]/40 border border-slate-950/50 text-sm text-slate-200 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words leading-relaxed min-h-[400px] max-h-[60vh] select-all select-none backdrop-blur-sm w-full`}>
+                        <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "anywhere" }} className={`language-${highlightLanguage} p-4 pr-12 rounded-xl bg-[#030610]/40 border border-slate-950/50 text-sm text-slate-200 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words leading-relaxed min-h-[400px] max-h-[60vh] select-all select-none backdrop-blur-sm w-full`}>
                           <code
                             className={`language-${highlightLanguage}`}
+                            style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "anywhere" }}
                             dangerouslySetInnerHTML={{
                               __html: (() => {
                                 const code = response.optimizedPrompt || "";
@@ -1709,7 +1710,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                           />
                         </pre>
                       ) : (
-                        <pre className="p-4 pr-12 rounded-xl bg-[#030610]/40 border border-slate-950/50 text-sm text-slate-200 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words leading-relaxed min-h-[400px] max-h-[60vh] select-all select-none backdrop-blur-sm font-sans w-full">
+                        <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-word", overflowWrap: "anywhere" }} className="p-4 pr-12 rounded-xl bg-[#030610]/40 border border-slate-950/50 text-sm text-slate-200 overflow-y-auto overflow-x-hidden whitespace-pre-wrap break-words leading-relaxed min-h-[400px] max-h-[60vh] select-all select-none backdrop-blur-sm font-sans w-full">
                           <code className="text-slate-200">{response.optimizedPrompt || ""}</code>
                         </pre>
                       )}
