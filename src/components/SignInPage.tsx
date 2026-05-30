@@ -85,28 +85,6 @@ export default function SignInPage({ onGoogleSignIn, isLoading }: SignInPageProp
           </div>
         </div>
 
-        {/* Workflow collapse/expand container */}
-        <div className="w-full max-w-5xl z-10">
-          <div className="flex items-center justify-between mb-3 px-2">
-            <button
-              type="button"
-              onClick={() => setShowWorkflow(!showWorkflow)}
-              className="text-xs font-mono text-slate-400 hover:text-indigo-400 flex items-center gap-1.5 transition-colors cursor-pointer select-none"
-            >
-              <Network className="w-4 h-4 text-indigo-400" /> 
-              <span>{showWorkflow ? "Hide System Delivery & Swimlane Workflow" : "Reveal System Delivery & Swimlane Workflow"}</span>
-            </button>
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">DevOps Topology Blueprint</span>
-          </div>
-          
-          {showWorkflow && (
-            <div className="transition-all duration-300 overflow-x-auto">
-              <div className="min-w-[700px]">
-                <SwimlaneWorkflow />
-              </div>
-            </div>
-          )}
-        </div>
       </main>
 
       {/* Tiny footer info */}
