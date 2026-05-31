@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>How to Write Better Prompts for ChatGPT (2026 Guide) – NEXA</title>
+  <meta name="description" content="Learn proven techniques to write better ChatGPT prompts. Get clearer answers, better code, and more creative output with these prompt engineering tips."/>
+  <meta name="robots" content="index,follow"/>
+  <link rel="canonical" href="https://prompt-optimizer-rouge-one.vercel.app/blog/how-to-write-better-chatgpt-prompts"/>
+  <meta property="og:title" content="How to Write Better Prompts for ChatGPT (2026 Guide)"/>
+  <meta property="og:description" content="Proven techniques to write better ChatGPT prompts and get clearer, more useful AI responses."/>
+  <meta property="og:url" content="https://prompt-optimizer-rouge-one.vercel.app/blog/how-to-write-better-chatgpt-prompts"/>
+  <meta property="og:type" content="article"/>
+  <meta name="twitter:card" content="summary"/>
+  <script type="application/ld+json">{
+    "@context":"https://schema.org",
+    "@type":"Article",
+    "headline":"How to Write Better Prompts for ChatGPT (2026 Guide)",
+    "description":"Learn proven techniques to write better ChatGPT prompts.",
+    "author":{"@type":"Organization","name":"NEXA Intelligence"},
+    "publisher":{"@type":"Organization","name":"NEXA Prompt Optimizer","url":"https://prompt-optimizer-rouge-one.vercel.app"},
+    "datePublished":"2026-05-01",
+    "dateModified":"2026-05-31",
+    "url":"https://prompt-optimizer-rouge-one.vercel.app/blog/how-to-write-better-chatgpt-prompts"
+  }</script>
+  
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{background:#0f0f0f;color:#e2e8f0;font-family:system-ui,-apple-system,sans-serif;line-height:1.7;font-size:17px}
+    a{color:#7F77DD;text-decoration:none}
+    a:hover{text-decoration:underline;color:#AFA9EC}
+    .wrap{max-width:780px;margin:0 auto;padding:2rem 1.25rem 4rem}
+    nav{background:#0d0d1a;border-bottom:1px solid #1e1e3a;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:99}
+    nav .logo{font-weight:700;font-size:1.1rem;color:#EEEDFE;letter-spacing:-0.5px}
+    nav .logo span{color:#5DCAA5}
+    nav .cta{background:#534AB7;color:#fff;padding:.45rem 1.1rem;border-radius:8px;font-size:.85rem;font-weight:600;transition:background .2s}
+    nav .cta:hover{background:#7F77DD;text-decoration:none}
+    h1{font-size:2rem;font-weight:800;line-height:1.25;color:#EEEDFE;margin:2rem 0 1rem;letter-spacing:-0.5px}
+    h2{font-size:1.35rem;font-weight:700;color:#EEEDFE;margin:2.5rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid #1e1e3a}
+    h3{font-size:1.1rem;font-weight:600;color:#AFA9EC;margin:1.75rem 0 .5rem}
+    p{margin:.9rem 0;color:#cbd5e1}
+    ul,ol{margin:.75rem 0 .75rem 1.5rem;color:#cbd5e1}
+    li{margin:.4rem 0}
+    .meta{color:#64748b;font-size:.85rem;margin-bottom:2rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center}
+    .meta span{background:#1a1a2e;padding:.2rem .6rem;border-radius:6px;border:1px solid #1e1e3a}
+    .tag{background:#534AB7/20;color:#AFA9EC;border:1px solid #534AB7;padding:.15rem .5rem;border-radius:4px;font-size:.75rem}
+    .highlight{background:#1a1a2e;border:1px solid #1e1e3a;border-left:3px solid #5DCAA5;padding:1rem 1.25rem;border-radius:8px;margin:1.5rem 0}
+    .highlight p{margin:0;color:#9FE1CB}
+    .cta-box{background:linear-gradient(135deg,#0d0d1a,#1a1a2e);border:1px solid #534AB7;border-radius:12px;padding:2rem;text-align:center;margin:3rem 0}
+    .cta-box h3{color:#EEEDFE;font-size:1.3rem;margin:0 0 .75rem}
+    .cta-box p{color:#94a3b8;margin:0 0 1.25rem}
+    .btn{display:inline-block;background:#534AB7;color:#fff;padding:.6rem 1.5rem;border-radius:8px;font-weight:700;font-size:.95rem;transition:background .2s}
+    .btn:hover{background:#7F77DD;text-decoration:none}
+    .breadcrumb{font-size:.82rem;color:#64748b;margin-bottom:1.5rem}
+    .breadcrumb a{color:#7F77DD}
+    footer{border-top:1px solid #1e1e3a;padding:2rem 1.25rem;text-align:center;color:#475569;font-size:.82rem;margin-top:4rem}
+    footer a{color:#7F77DD}
+    .related{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin:2rem 0}
+    .related a{background:#0d0d1a;border:1px solid #1e1e3a;border-radius:10px;padding:1rem;display:block;color:#EEEDFE;font-weight:600;font-size:.9rem;transition:border-color .2s}
+    .related a:hover{border-color:#534AB7;text-decoration:none}
+    .related a span{display:block;color:#64748b;font-size:.78rem;font-weight:400;margin-top:.3rem}
+    @media(max-width:600px){h1{font-size:1.55rem}h2{font-size:1.15rem}}
+  </style>
+</head>
+<body>
+<nav>
+    <a class="logo" href="https://prompt-optimizer-rouge-one.vercel.app">NEXA <span>Optimizer</span></a>
+    <a class="cta" href="https://prompt-optimizer-rouge-one.vercel.app">Try Free →</a>
+  </nav>
+<main class="wrap">
+  <div class="breadcrumb"><a href="https://prompt-optimizer-rouge-one.vercel.app">Home</a> › <a href="https://prompt-optimizer-rouge-one.vercel.app/blog">Blog</a> › How to Write Better ChatGPT Prompts</div>
+  <h1>How to Write Better Prompts for ChatGPT (2026 Guide)</h1>
+  <div class="meta">
+    <span>📅 May 2026</span>
+    <span>⏱ 6 min read</span>
+    <span class="tag">Prompt Engineering</span>
+    <span class="tag">ChatGPT</span>
+  </div>
+
+  <p>Most people use ChatGPT the same way they use a search engine — they type a vague question and hope for the best. The result is often generic, unfocused, or just plain wrong. The difference between a mediocre AI response and a genuinely useful one almost always comes down to the quality of the prompt.</p>
+
+  <div class="highlight"><p>💡 A well-written prompt is the single highest-leverage skill you can develop as an AI user. It costs nothing and multiplies the value of every AI interaction you have.</p></div>
+
+  <h2>1. Give ChatGPT a Role</h2>
+  <p>One of the most effective prompt techniques is assigning ChatGPT a specific persona before asking your question. This frames the context and dramatically changes the quality of the output.</p>
+  <p><strong>Weak prompt:</strong> "Explain machine learning."</p>
+  <p><strong>Strong prompt:</strong> "You are a senior ML engineer explaining machine learning to a product manager with no technical background. Use analogies and avoid jargon."</p>
+  <p>The role instruction tells the model who it is, who it's talking to, and what tone to use — all in one sentence.</p>
+
+  <h2>2. Specify the Output Format</h2>
+  <p>ChatGPT will default to a generic format unless you tell it otherwise. Always specify exactly what you want:</p>
+  <ul>
+    <li>"Respond with a numbered list of 5 items"</li>
+    <li>"Write this as a professional email under 150 words"</li>
+    <li>"Format your response as a comparison table with columns for pros, cons, and cost"</li>
+    <li>"Give me only the code, no explanations"</li>
+  </ul>
+  <p>Explicit format instructions eliminate guesswork and save you from having to reformat the output manually.</p>
+
+  <h2>3. Add Constraints</h2>
+  <p>Constraints are one of the most underused prompt techniques. Boundaries actually improve output quality because they force the model to prioritise the most important information.</p>
+  <ul>
+    <li>Word limits: "in under 200 words"</li>
+    <li>Audience: "for someone who has never coded before"</li>
+    <li>Tone: "professional but conversational, no corporate jargon"</li>
+    <li>Exclusions: "do not include pricing or product recommendations"</li>
+  </ul>
+
+  <h2>4. Use the Chain-of-Thought Technique</h2>
+  <p>For complex problems, adding "think step by step" or "reason through this before answering" significantly improves accuracy. This technique — called chain-of-thought prompting — forces the model to show its reasoning rather than jumping to a conclusion.</p>
+  <p>It works especially well for maths problems, logical puzzles, and multi-step planning tasks.</p>
+
+  <h2>5. Provide Examples</h2>
+  <p>If you want a specific style or format, show it. Include one or two examples of the kind of output you're looking for. This is called few-shot prompting and is one of the most reliable ways to get consistent results.</p>
+
+  <h2>6. Iterate, Don't Start Over</h2>
+  <p>The best prompts are rarely written perfectly on the first try. Treat prompting as a conversation — if the first response isn't quite right, tell ChatGPT exactly what to adjust rather than starting a new chat.</p>
+  <p>"Make this more concise", "Use a more formal tone", "Add a section on X" — these refinements build on context that already exists in the conversation.</p>
+
+  <h2>The Fastest Way to Improve Your Prompts</h2>
+  <p>Writing great prompts manually takes practice. NEXA Prompt Optimizer analyses your rough idea and restructures it using all the techniques above automatically — role assignment, format specification, constraints, and more.</p>
+
+  <div class="cta-box">
+    <h3>Optimize Your ChatGPT Prompts Instantly</h3>
+    <p>Type your rough idea and NEXA transforms it into a structured, production-ready prompt in seconds. Free, no sign-up required to try.</p>
+    <a class="btn" href="https://prompt-optimizer-rouge-one.vercel.app">Try NEXA Free →</a>
+  </div>
+
+  <h2>Related Articles</h2>
+  <div class="related">
+    <a href="https://prompt-optimizer-rouge-one.vercel.app/blog/prompt-engineering-for-beginners">Prompt Engineering for Beginners<span>Start from zero and learn the fundamentals</span></a>
+    <a href="https://prompt-optimizer-rouge-one.vercel.app/blog/how-to-get-better-results-from-claude">Get Better Results from Claude AI<span>Tips specific to Anthropic's Claude</span></a>
+    <a href="https://prompt-optimizer-rouge-one.vercel.app/blog/gemini-prompt-tips">Gemini Prompt Tips 2026<span>Unlock Google's Gemini with better prompts</span></a>
+  </div>
+</main>
+<footer>
+    <p>© 2026 <a href="https://prompt-optimizer-rouge-one.vercel.app">NEXA Prompt Optimizer</a> — Free AI Prompt Engineering Tool</p>
+    <p style="margin-top:.5rem"><a href="https://prompt-optimizer-rouge-one.vercel.app/blog">Blog</a> · <a href="https://prompt-optimizer-rouge-one.vercel.app">Home</a></p>
+  </footer>
+</body>
+</html>
