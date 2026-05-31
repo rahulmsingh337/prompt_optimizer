@@ -1,0 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>NEXA Prompt Optimizer – Turn Rough Ideas into Perfect AI Prompts</title>
+  <meta name="description" content="Free AI prompt optimizer. Transform vague ideas into structured, production-ready prompts for ChatGPT, Claude and Gemini in seconds. No sign-up to try."/>
+  <meta name="robots" content="index,follow"/>
+  <link rel="canonical" href="https://prompt-optimizer-rouge-one.vercel.app/landing"/>
+  <meta property="og:title" content="NEXA – Turn Rough Ideas into Perfect AI Prompts"/>
+  <meta property="og:description" content="Free AI prompt optimizer. Structured prompts for ChatGPT, Claude and Gemini in seconds."/>
+  <meta property="og:image" content="https://prompt-optimizer-rouge-one.vercel.app/og-image.png"/>
+  <meta property="og:url" content="https://prompt-optimizer-rouge-one.vercel.app/landing"/>
+  <meta property="og:type" content="website"/>
+  <meta name="twitter:card" content="summary_large_image"/>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <script type="application/ld+json">{
+    "@context":"https://schema.org",
+    "@type":"WebApplication",
+    "name":"NEXA Prompt Optimizer",
+    "url":"https://prompt-optimizer-rouge-one.vercel.app",
+    "description":"Free AI prompt engineering tool with 4-D pipeline methodology",
+    "applicationCategory":"UtilitiesApplication",
+    "offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}
+  }</script>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --purple:#7F77DD;--purple-dark:#534AB7;--teal:#5DCAA5;--teal-dark:#1D9E75;
+      --bg:#0f0f0f;--bg2:#0d0d1a;--bg3:#1a1a2e;--border:#1e1e3a;
+      --text:#e2e8f0;--muted:#94a3b8;--dim:#475569;
+    }
+    html{scroll-behavior:smooth}
+    body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;line-height:1.6;overflow-x:hidden}
+    a{color:var(--purple);text-decoration:none}
+    a:hover{text-decoration:underline}
+
+    /* NAV */
+    nav{position:sticky;top:0;z-index:99;background:rgba(13,13,26,.95);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);padding:.9rem 1.5rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+    .nav-logo{font-weight:800;font-size:1.15rem;color:#EEEDFE;letter-spacing:-0.5px;display:flex;align-items:center;gap:.5rem}
+    .nav-logo .dot{width:8px;height:8px;border-radius:50%;background:var(--teal);display:inline-block}
+    .nav-links{display:flex;align-items:center;gap:1.5rem}
+    .nav-links a{font-size:.85rem;color:var(--muted);transition:color .2s}
+    .nav-links a:hover{color:var(--text);text-decoration:none}
+    .nav-cta{background:var(--purple-dark);color:#fff;padding:.45rem 1.1rem;border-radius:8px;font-size:.85rem;font-weight:700;transition:background .2s}
+    .nav-cta:hover{background:var(--purple);text-decoration:none}
+
+    /* HERO */
+    .hero{max-width:800px;margin:0 auto;text-align:center;padding:5rem 1.5rem 3rem}
+    .hero-badge{display:inline-flex;align-items:center;gap:.5rem;background:var(--bg3);border:1px solid var(--border);border-radius:100px;padding:.35rem .9rem;font-size:.75rem;color:var(--teal);font-weight:600;margin-bottom:1.5rem;letter-spacing:.5px}
+    .hero-badge .pulse{width:6px;height:6px;border-radius:50%;background:var(--teal);animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+    h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:900;line-height:1.15;color:#EEEDFE;letter-spacing:-1px;margin-bottom:1.25rem}
+    h1 .accent{background:linear-gradient(135deg,var(--purple),var(--teal));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .hero-sub{font-size:1.05rem;color:var(--muted);max-width:580px;margin:0 auto 2.5rem;line-height:1.7}
+    .hero-buttons{display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+    .btn-primary{background:linear-gradient(135deg,var(--purple-dark),var(--teal-dark));color:#fff;padding:.75rem 2rem;border-radius:10px;font-weight:700;font-size:.95rem;transition:opacity .2s;display:inline-flex;align-items:center;gap:.5rem}
+    .btn-primary:hover{opacity:.9;text-decoration:none}
+    .btn-secondary{background:transparent;color:var(--text);padding:.75rem 2rem;border-radius:10px;font-weight:600;font-size:.95rem;border:1px solid var(--border);transition:border-color .2s;display:inline-flex;align-items:center;gap:.5rem}
+    .btn-secondary:hover{border-color:var(--purple);text-decoration:none}
+    .hero-trust{margin-top:2rem;font-size:.78rem;color:var(--dim)}
+    .hero-trust span{color:var(--teal)}
+
+    /* BEFORE/AFTER */
+    .ba-section{max-width:900px;margin:0 auto;padding:2rem 1.5rem 4rem}
+    .ba-label{text-align:center;font-size:.75rem;font-weight:700;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:2rem}
+    .ba-grid{display:grid;grid-template-columns:1fr auto 1fr;gap:1rem;align-items:start}
+    .ba-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.25rem;font-size:.82rem;line-height:1.7;font-family:monospace;color:var(--muted)}
+    .ba-card.after{border-color:var(--purple-dark);background:rgba(83,74,183,.06)}
+    .ba-card .card-label{font-size:.68rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:.75rem;display:flex;align-items:center;gap:.4rem}
+    .ba-card.before .card-label{color:#ef4444}
+    .ba-card.after .card-label{color:var(--teal)}
+    .ba-arrow{display:flex;align-items:center;justify-content:center;padding:.5rem;color:var(--purple);font-size:1.5rem;margin-top:2rem}
+
+    /* HOW IT WORKS */
+    .section{max-width:900px;margin:0 auto;padding:3rem 1.5rem}
+    .section-label{text-align:center;font-size:.72rem;font-weight:700;letter-spacing:3px;color:var(--teal);text-transform:uppercase;margin-bottom:.75rem}
+    .section-title{text-align:center;font-size:clamp(1.5rem,3vw,2rem);font-weight:800;color:#EEEDFE;margin-bottom:.75rem;letter-spacing:-.5px}
+    .section-sub{text-align:center;color:var(--muted);font-size:.95rem;max-width:520px;margin:0 auto 2.5rem}
+    .steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.25rem}
+    .step{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.5rem;position:relative}
+    .step-num{width:32px;height:32px;border-radius:8px;background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:.8rem;font-weight:800;color:var(--purple);margin-bottom:1rem;font-family:monospace}
+    .step h3{font-size:.95rem;font-weight:700;color:#EEEDFE;margin-bottom:.4rem}
+    .step p{font-size:.82rem;color:var(--muted);line-height:1.6}
+
+    /* FEATURES */
+    .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem}
+    .feature{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1.5rem;transition:border-color .2s}
+    .feature:hover{border-color:var(--purple-dark)}
+    .feature-icon{font-size:1.5rem;margin-bottom:.75rem}
+    .feature h3{font-size:.95rem;font-weight:700;color:#EEEDFE;margin-bottom:.4rem}
+    .feature p{font-size:.82rem;color:var(--muted);line-height:1.6}
+
+    /* PLATFORMS */
+    .platforms{display:flex;justify-content:center;gap:1rem;flex-wrap:wrap;margin-top:1.5rem}
+    .platform-badge{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:.6rem 1.2rem;font-size:.82rem;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:.5rem}
+
+    /* TEMPLATES PREVIEW */
+    .templates-grid{display:flex;flex-wrap:wrap;gap:.6rem;justify-content:center;margin-top:1.5rem}
+    .template-tag{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.3rem .8rem;font-size:.75rem;color:var(--muted)}
+
+    /* CTA SECTION */
+    .cta-section{max-width:700px;margin:0 auto;padding:3rem 1.5rem 5rem;text-align:center}
+    .cta-box{background:linear-gradient(135deg,var(--bg2),var(--bg3));border:1px solid var(--purple-dark);border-radius:20px;padding:3rem 2rem}
+    .cta-box h2{font-size:clamp(1.5rem,3vw,2rem);font-weight:800;color:#EEEDFE;margin-bottom:.75rem;letter-spacing:-.5px}
+    .cta-box p{color:var(--muted);margin-bottom:2rem;font-size:.95rem}
+
+    /* STATS */
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin:2.5rem 0}
+    .stat{text-align:center}
+    .stat-num{font-size:2rem;font-weight:900;color:#EEEDFE;letter-spacing:-1px}
+    .stat-label{font-size:.78rem;color:var(--dim)}
+
+    /* FOOTER */
+    footer{border-top:1px solid var(--border);padding:2rem 1.5rem;text-align:center;color:var(--dim);font-size:.8rem}
+    footer a{color:var(--purple)}
+    .footer-links{display:flex;justify-content:center;gap:1.5rem;margin-bottom:.75rem;flex-wrap:wrap}
+
+    /* DIVIDER */
+    .divider{height:1px;background:linear-gradient(90deg,transparent,var(--border),transparent);margin:1rem 0}
+
+    @media(max-width:600px){
+      .ba-grid{grid-template-columns:1fr;}
+      .ba-arrow{transform:rotate(90deg)}
+      .nav-links{display:none}
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-logo"><div class="dot"></div> NEXA</div>
+  <div class="nav-links">
+    <a href="#how-it-works">How it works</a>
+    <a href="#features">Features</a>
+    <a href="https://prompt-optimizer-rouge-one.vercel.app/blog">Blog</a>
+  </div>
+  <a class="nav-cta" href="https://prompt-optimizer-rouge-one.vercel.app">Try Free →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">
+    <div class="pulse"></div>
+    FREE · NO CREDIT CARD · NO SIGNUP REQUIRED
+  </div>
+  <h1>Turn Rough Ideas into<br/><span class="accent">Perfect AI Prompts</span></h1>
+  <p class="hero-sub">NEXA analyzes your vague request and restructures it into a production-ready prompt using the 4-D pipeline: Deconstruct, Diagnose, Develop, Deliver.</p>
+  <div class="hero-buttons">
+    <a class="btn-primary" href="https://prompt-optimizer-rouge-one.vercel.app">Optimize My Prompt →</a>
+    <a class="btn-secondary" href="#how-it-works">See how it works</a>
+  </div>
+  <p class="hero-trust">Works with <span>ChatGPT</span> · <span>Claude</span> · <span>Gemini</span> and every major AI model</p>
+</section>
+
+<!-- BEFORE / AFTER -->
+<div class="ba-section">
+  <p class="ba-label">See the difference</p>
+  <div class="ba-grid">
+    <div class="ba-card before">
+      <div class="card-label">✗ Before NEXA</div>
+      "write me a marketing email for my product"
+    </div>
+    <div class="ba-arrow">→</div>
+    <div class="ba-card after">
+      <div class="card-label">✓ After NEXA</div>
+      "You are a senior B2B copywriter specializing in SaaS. Write a persuasive cold email (max 180 words) for [Product], targeting [Audience] at [Company size] companies. Structure: (1) personalized subject line using the recipient's pain point, (2) 2-sentence hook with a specific problem statement, (3) value proposition with one quantified benefit, (4) social proof element, (5) single low-friction CTA. Tone: professional but conversational. Avoid: jargon, passive voice, generic claims."
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- HOW IT WORKS -->
+<section class="section" id="how-it-works">
+  <p class="section-label">The 4-D Pipeline</p>
+  <h2 class="section-title">How NEXA Transforms Your Prompts</h2>
+  <p class="section-sub">Four stages run automatically every time you hit Optimize</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">01</div>
+      <h3>Deconstruct</h3>
+      <p>NEXA breaks your rough input into its core intent, target audience, and implicit requirements — even if you didn't state them.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">02</div>
+      <h3>Diagnose</h3>
+      <p>Scans for ambiguity, missing context, security risks (prompt injection, PII exposure), and complexity level to route to the right mode.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">03</div>
+      <h3>Develop</h3>
+      <p>Applies proven prompt engineering techniques: role assignment, format specification, constraint setting, and chain-of-thought structuring.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">04</div>
+      <h3>Deliver</h3>
+      <p>Returns a structured, copy-ready prompt with improvement notes, applied techniques, and one-click launch to your chosen AI platform.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <p class="section-label">What's included</p>
+  <h2 class="section-title">Everything You Need</h2>
+  <p class="section-sub">All features are free. No hidden limits on prompt quality.</p>
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">🧠</div>
+      <h3>Auto-Complexity Detection</h3>
+      <p>NEXA automatically routes simple prompts to BASIC mode and technical or multi-step requests to DETAIL mode — no configuration needed.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🛡️</div>
+      <h3>Security Diagnostics</h3>
+      <p>Flags prompt injection risks, exposed API keys, PII in your input, SQL injection patterns, XSS vectors, and ambiguous language before it reaches the AI.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📋</div>
+      <h3>20 Starter Templates</h3>
+      <p>Marketing emails, code reviews, blog posts, lesson plans, business plans — 20 structured templates across 6 categories to start instantly.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔀</div>
+      <h3>Word Diff View</h3>
+      <p>Side-by-side comparison showing exactly what changed between your original prompt and the optimized version — every addition highlighted.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🚀</div>
+      <h3>One-Click Platform Launch</h3>
+      <p>Optimized prompt copied to clipboard and sent directly to ChatGPT, Claude, or Gemini in one click — no manual copy-paste.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📊</div>
+      <h3>6 Domain Profiles</h3>
+      <p>Marketing, Software Development, Creative Writing, Business Strategy, Educational, and General — each domain tunes the output style and terminology.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🔄</div>
+      <h3>Translate Any Language</h3>
+      <p>Auto-detects non-English input and translates before optimizing — write your rough idea in any language, get a structured English prompt back.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">💾</div>
+      <h3>Prompt History</h3>
+      <p>Every optimized prompt saved to your session history. Search, revisit, and reload any previous optimization in one click.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">⚡</div>
+      <h3>Groq-Powered Speed</h3>
+      <p>Primary engine runs on Groq's Llama 3.3 — significantly faster than GPT-4 for most optimization tasks. Falls back to Gemini automatically.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- STATS -->
+<section class="section">
+  <div class="stats">
+    <div class="stat"><div class="stat-num">4-D</div><div class="stat-label">Optimization Pipeline</div></div>
+    <div class="stat"><div class="stat-num">20+</div><div class="stat-label">Starter Templates</div></div>
+    <div class="stat"><div class="stat-num">6</div><div class="stat-label">Domain Profiles</div></div>
+    <div class="stat"><div class="stat-num">3</div><div class="stat-label">AI Platforms Supported</div></div>
+    <div class="stat"><div class="stat-num">Free</div><div class="stat-label">Always</div></div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- TEMPLATES PREVIEW -->
+<section class="section">
+  <p class="section-label">Starter Templates</p>
+  <h2 class="section-title">Start in Seconds</h2>
+  <p class="section-sub">20 structured templates across 6 categories. Click one inside the app and your textarea is pre-filled — then optimize.</p>
+  <div class="templates-grid">
+    <div class="template-tag">📧 Marketing Email</div>
+    <div class="template-tag">📱 Social Media Post</div>
+    <div class="template-tag">🚀 Product Launch</div>
+    <div class="template-tag">👨‍💻 Code Review</div>
+    <div class="template-tag">🔌 API Design</div>
+    <div class="template-tag">🐛 Debug Helper</div>
+    <div class="template-tag">✍️ Blog Post</div>
+    <div class="template-tag">📋 Executive Summary</div>
+    <div class="template-tag">💼 Cover Letter</div>
+    <div class="template-tag">📈 Business Plan</div>
+    <div class="template-tag">📅 Meeting Agenda</div>
+    <div class="template-tag">🎯 Cold Outreach</div>
+    <div class="template-tag">📖 Short Story</div>
+    <div class="template-tag">👤 Character Profile</div>
+    <div class="template-tag">🎓 Lesson Plan</div>
+    <div class="template-tag">💡 Explain a Concept</div>
+    <div class="template-tag">❓ Quiz Generator</div>
+    <div class="template-tag">📢 Ad Copy</div>
+    <div class="template-tag">🛒 Product Description</div>
+    <div class="template-tag">📝 Performance Review</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-box">
+    <h2>Start Optimizing for Free</h2>
+    <p>No sign-up required to try. Sign in with Google to save your history and unlock all features.</p>
+    <a class="btn-primary" href="https://prompt-optimizer-rouge-one.vercel.app" style="display:inline-flex;margin:0 auto">
+      Open NEXA Prompt Optimizer →
+    </a>
+    <p style="margin-top:1.25rem;font-size:.78rem;color:var(--dim)">Free forever · No credit card · Works with ChatGPT, Claude & Gemini</p>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-links">
+    <a href="https://prompt-optimizer-rouge-one.vercel.app">App</a>
+    <a href="https://prompt-optimizer-rouge-one.vercel.app/blog">Blog</a>
+    <a href="https://prompt-optimizer-rouge-one.vercel.app/blog/prompt-engineering-for-beginners">Prompt Engineering Guide</a>
+    <a href="https://prompt-optimizer-rouge-one.vercel.app/blog/how-to-write-better-chatgpt-prompts">ChatGPT Tips</a>
+    <a href="https://prompt-optimizer-rouge-one.vercel.app/blog/how-to-get-better-results-from-claude">Claude Tips</a>
+    <a href="https://prompt-optimizer-rouge-one.vercel.app/blog/gemini-prompt-tips">Gemini Tips</a>
+  </div>
+  <p>© 2026 NEXA Prompt Optimizer — Free AI Prompt Engineering Tool</p>
+</footer>
+
+</body>
+</html>
