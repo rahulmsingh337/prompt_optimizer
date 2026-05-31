@@ -224,6 +224,31 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
   const [domain, setDomain] = useState<string>("General");
   const [tone, setTone] = useState<string>("Professional");
   const [roughRequest, setRoughRequest] = useState<string>("");
+  const [showTemplates, setShowTemplates] = useState<boolean>(false);
+
+  // 20 starter templates across 6 categories — pre-fills textarea only
+  const TEMPLATES = [
+    { category: "Marketing", label: "Email Campaign", prompt: "Write a professional marketing email for [product/service] targeting [target audience]. The email should include a compelling subject line, personalized opening, clear value proposition, specific benefits, social proof element, and a strong call-to-action. Tone: [professional/friendly/urgent]. Goal: [increase sales/drive sign-ups/boost engagement]." },
+    { category: "Marketing", label: "Social Media Post", prompt: "Create an engaging social media post for [platform: Instagram/Twitter/LinkedIn] promoting [product/service/event]. Include relevant hashtags, a hook in the first line, key message, and a call-to-action. Target audience: [describe audience]. Brand tone: [describe tone]." },
+    { category: "Marketing", label: "Product Launch", prompt: "Write a product launch announcement for [product name]. Include: what the product does, the problem it solves, key features (list 3-5), pricing, availability date, and where to learn more. Target audience: [audience]. Keep it exciting and benefit-focused." },
+    { category: "Coding", label: "Code Review", prompt: "Review the following [language] code for: (1) bugs and logical errors, (2) security vulnerabilities, (3) performance issues, (4) code style and best practices, (5) missing edge cases. For each issue found, explain the problem and provide a corrected version. Code: [paste code here]." },
+    { category: "Coding", label: "API Design", prompt: "Design a RESTful API for [system/feature]. Include: endpoint definitions with HTTP methods, request/response schemas with example JSON, authentication approach, error handling strategy, rate limiting considerations, and versioning approach. System context: [describe what the system does]." },
+    { category: "Coding", label: "Debug Helper", prompt: "Help me debug this issue: [describe the bug]. Expected behavior: [what should happen]. Actual behavior: [what is happening]. Error message: [paste error if any]. Environment: [language, framework, version]. Code snippet: [paste relevant code]. What are the likely causes and how do I fix them?" },
+    { category: "Writing", label: "Blog Post", prompt: "Write a comprehensive blog post about [topic] for [target audience]. Structure: attention-grabbing headline, engaging introduction with a hook, 4-5 main sections with H2 headings, practical examples or case studies, actionable takeaways, and a conclusion with CTA. Tone: [informative/conversational/authoritative]. Word count: approximately [500/800/1200] words." },
+    { category: "Writing", label: "Executive Summary", prompt: "Write an executive summary for [document/project/report name]. Include: purpose and scope (2-3 sentences), key findings or highlights (3-5 bullet points), recommendations or next steps (2-3 items), and conclusion. Audience: senior executives with limited time. Length: maximum 1 page. Context: [provide relevant background]." },
+    { category: "Writing", label: "Cover Letter", prompt: "Write a professional cover letter for [job title] position at [company name]. Highlight: my most relevant experience in [field/skill], specific achievement that demonstrates value (include metrics if possible), why I want to work at this specific company, and what I can contribute. My background: [brief description]. Job requirements: [key requirements from posting]." },
+    { category: "Business", label: "Business Plan Section", prompt: "Write the [section: Executive Summary/Market Analysis/Go-to-Market Strategy/Financial Projections] section of a business plan for [business name/type]. Business concept: [describe]. Target market: [describe]. Key differentiators: [list]. Include relevant data points, realistic assumptions, and actionable strategies. Format as a professional business document." },
+    { category: "Business", label: "Meeting Agenda", prompt: "Create a structured meeting agenda for a [type] meeting. Duration: [X minutes]. Attendees: [list roles]. Objectives: [what decisions need to be made or what must be accomplished]. Include time allocations for each item, a pre-read section listing materials attendees should review beforehand, and a section for action items and owners." },
+    { category: "Business", label: "Performance Review", prompt: "Write a balanced performance review for an employee in the [role] position. Areas to cover: key accomplishments this period, areas where performance exceeded expectations, areas for improvement with specific examples, development goals for next period, and overall rating rationale. Context: [key projects, team, company stage]. Tone: constructive, specific, and growth-focused." },
+    { category: "Creative", label: "Short Story Starter", prompt: "Write the opening scene (400-500 words) of a short story in the [genre: thriller/romance/sci-fi/fantasy] genre. Setting: [describe]. Main character: [brief description including one defining trait]. Opening conflict or tension: [describe the inciting moment]. Writing style: [descriptive/fast-paced/literary]. The opening should hook the reader immediately and set up the central conflict." },
+    { category: "Creative", label: "Character Profile", prompt: "Create a detailed character profile for [character name], a [age]-year-old [occupation] in a [genre] story. Include: physical description, personality traits (strengths and flaws), backstory (formative events), core motivation and fear, speech patterns or quirks, relationships with other characters, and internal conflict. Make the character feel three-dimensional and contradictory in realistic ways." },
+    { category: "Creative", label: "Product Description", prompt: "Write a compelling product description for [product name] targeting [audience]. Include: a one-line hook, what it is and does, top 3 benefits (not features), who it is for, what makes it different from alternatives, and a confident closing statement. Tone: [luxurious/playful/technical/minimalist]. Length: [50/100/200] words." },
+    { category: "Educational", label: "Lesson Plan", prompt: "Create a detailed lesson plan for teaching [topic] to [grade level/age group]. Duration: [X minutes]. Include: learning objectives (measurable, using Bloom's taxonomy), materials needed, warm-up activity (5 min), main instruction with step-by-step activities, formative assessment strategy, differentiation for advanced and struggling learners, and homework or extension activity." },
+    { category: "Educational", label: "Explain a Concept", prompt: "Explain [concept] to someone who is [complete beginner/has basic knowledge/is intermediate]. Use an analogy they can relate to, break it into 3-5 clear steps or components, provide a concrete real-world example, address the most common misconception about this concept, and end with a simple way to test understanding. Avoid jargon unless you define it immediately." },
+    { category: "Educational", label: "Quiz Generator", prompt: "Create a 10-question quiz on [topic] for [audience level: beginner/intermediate/advanced]. Include: 5 multiple choice questions (4 options each, one clearly correct), 3 true/false questions, 2 short answer questions. For each question, provide the correct answer and a brief explanation (1-2 sentences) of why it is correct. Cover these subtopics: [list key areas]." },
+    { category: "Marketing", label: "Ad Copy", prompt: "Write 3 variations of ad copy for [product/service] targeting [audience] on [platform: Google/Facebook/LinkedIn]. Each variation should have: a headline (max 30 chars for Google, 25 for others), description (max 90 chars), and call-to-action. Variation 1: benefit-focused. Variation 2: problem/solution. Variation 3: social proof angle. Key selling point: [describe]." },
+    { category: "Business", label: "Cold Outreach Email", prompt: "Write a cold outreach email to [prospect type: potential client/partner/investor] at [company type]. Goal: [schedule a call/explore partnership/introduce product]. Keep it under 150 words. Include: a personalised opener referencing something specific about them, the value I can offer in one sentence, a specific and easy ask, and a low-pressure CTA. My company: [brief description]. Why relevant to them: [reason]." },
+  ];
 
   // Workflow dynamic states
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -1204,6 +1229,44 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                   </div>
                 </div>
               )}
+
+              {/* ── TEMPLATE PICKER — pre-fills textarea, no other effect ── */}
+              <div className="mb-2">
+                <button
+                  type="button"
+                  onClick={() => setShowTemplates(!showTemplates)}
+                  className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 hover:text-indigo-400 transition-colors cursor-pointer select-none"
+                >
+                  <span>{showTemplates ? "▲" : "▼"}</span>
+                  <span>{showTemplates ? "Hide Templates" : "Start from a Template"}</span>
+                  <span className="text-slate-600 ml-1">({TEMPLATES.length} available)</span>
+                </button>
+                {showTemplates && (
+                  <div className="mt-2 bg-[#0a0f1e]/80 border border-slate-800/60 rounded-xl p-3 backdrop-blur-sm">
+                    {["Marketing", "Coding", "Writing", "Business", "Creative", "Educational"].map(cat => (
+                      <div key={cat} className="mb-3 last:mb-0">
+                        <div className="text-[9px] font-mono uppercase tracking-widest text-slate-500 mb-1.5 font-bold">{cat}</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {TEMPLATES.filter(t => t.category === cat).map(t => (
+                            <button
+                              key={t.label}
+                              type="button"
+                              onClick={() => {
+                                setRoughRequest(t.prompt);
+                                setShowTemplates(false);
+                              }}
+                              className="px-2.5 py-1 rounded-lg bg-slate-900/60 hover:bg-indigo-950/60 border border-slate-800/50 hover:border-indigo-500/40 text-[10px] text-slate-300 hover:text-indigo-300 font-mono transition-all cursor-pointer select-none"
+                            >
+                              {t.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              {/* ── END TEMPLATE PICKER ─────────────────────────────────── */}
 
               <textarea
                 value={roughRequest}
