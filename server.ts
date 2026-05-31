@@ -827,21 +827,6 @@ export function resilientJsonParse(rawText: string): any {
   }
 }
 
-/**
- * Format and write rich error logs on the server console for rapid debugging.
- * Masks credentials while preserving payload context, status codes, and model state.
- */
-  if (error?.errorDetails) {
-    console.error("Specific Details:", JSON.stringify(error.errorDetails, null, 2));
-  }
-  if (error?.stack) {
-    console.error("Stack Trace:\n", error.stack);
-  }
-  console.error("----------------------------------------------------------------------");
-  console.error("Sanitized Client Parameters:");
-  const sanitized = { ...requestPayload };
-  if (sanitized.roughRequest) {
-    sanitized.roughRequest = sanitized.roughRequest.length > 500
 // AI Optimize Entrypoint (Evaluates mode and decides whether to produce Questions or generate Prompt)
 
 
