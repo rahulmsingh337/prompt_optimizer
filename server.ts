@@ -831,18 +831,6 @@ export function resilientJsonParse(rawText: string): any {
  * Format and write rich error logs on the server console for rapid debugging.
  * Masks credentials while preserving payload context, status codes, and model state.
  */
-export function logServerError(context: string, error: any, requestPayload: any): void {
-  const timestamp = new Date().toISOString();
-  console.error("\n======================================================================");
-  console.error(`[NEXA ERROR LOG] [${timestamp}]`);
-  console.error(`CONTEXT: ${context}`);
-  console.error("----------------------------------------------------------------------");
-  console.error("Error Details:", error);
-  console.error("Type/Name:", error?.name || "GenericError");
-  console.error("Message:", error?.message || "No error message provided");
-  if (error?.status || error?.statusCode) {
-    console.error(`HTTP/RPC Status: ${error?.status || error?.statusCode}`);
-  }
   if (error?.errorDetails) {
     console.error("Specific Details:", JSON.stringify(error.errorDetails, null, 2));
   }
