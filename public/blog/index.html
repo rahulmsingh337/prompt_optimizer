@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Blog – Prompt Engineering Tips & AI Guides – NEXA</title>
+  <meta name="description" content="Free guides on prompt engineering, ChatGPT tips, Claude AI techniques, and Gemini prompts. Learn to get better results from every AI model."/>
+  <meta name="robots" content="index,follow"/>
+  <link rel="canonical" href="https://prompt-optimizer-rouge-one.vercel.app/blog"/>
+  <meta property="og:title" content="NEXA Blog – Prompt Engineering Tips & AI Guides"/>
+  <meta property="og:description" content="Free guides on prompt engineering for ChatGPT, Claude, and Gemini."/>
+  <meta property="og:url" content="https://prompt-optimizer-rouge-one.vercel.app/blog"/>
+  <meta property="og:type" content="website"/>
+  <script type="application/ld+json">{
+    "@context":"https://schema.org",
+    "@type":"Blog",
+    "name":"NEXA Prompt Optimizer Blog",
+    "url":"https://prompt-optimizer-rouge-one.vercel.app/blog",
+    "description":"Prompt engineering tips and AI guides",
+    "publisher":{"@type":"Organization","name":"NEXA Prompt Optimizer","url":"https://prompt-optimizer-rouge-one.vercel.app"}
+  }</script>
+  
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    html{scroll-behavior:smooth}
+    body{background:#0f0f0f;color:#e2e8f0;font-family:system-ui,-apple-system,sans-serif;line-height:1.7;font-size:17px}
+    a{color:#7F77DD;text-decoration:none}
+    a:hover{text-decoration:underline;color:#AFA9EC}
+    .wrap{max-width:780px;margin:0 auto;padding:2rem 1.25rem 4rem}
+    nav{background:#0d0d1a;border-bottom:1px solid #1e1e3a;padding:1rem 1.25rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:99}
+    nav .logo{font-weight:700;font-size:1.1rem;color:#EEEDFE;letter-spacing:-0.5px}
+    nav .logo span{color:#5DCAA5}
+    nav .cta{background:#534AB7;color:#fff;padding:.45rem 1.1rem;border-radius:8px;font-size:.85rem;font-weight:600;transition:background .2s}
+    nav .cta:hover{background:#7F77DD;text-decoration:none}
+    h1{font-size:2rem;font-weight:800;line-height:1.25;color:#EEEDFE;margin:2rem 0 1rem;letter-spacing:-0.5px}
+    h2{font-size:1.35rem;font-weight:700;color:#EEEDFE;margin:2.5rem 0 .75rem;padding-bottom:.4rem;border-bottom:1px solid #1e1e3a}
+    h3{font-size:1.1rem;font-weight:600;color:#AFA9EC;margin:1.75rem 0 .5rem}
+    p{margin:.9rem 0;color:#cbd5e1}
+    ul,ol{margin:.75rem 0 .75rem 1.5rem;color:#cbd5e1}
+    li{margin:.4rem 0}
+    .meta{color:#64748b;font-size:.85rem;margin-bottom:2rem;display:flex;gap:1rem;flex-wrap:wrap;align-items:center}
+    .meta span{background:#1a1a2e;padding:.2rem .6rem;border-radius:6px;border:1px solid #1e1e3a}
+    .tag{background:#534AB7/20;color:#AFA9EC;border:1px solid #534AB7;padding:.15rem .5rem;border-radius:4px;font-size:.75rem}
+    .highlight{background:#1a1a2e;border:1px solid #1e1e3a;border-left:3px solid #5DCAA5;padding:1rem 1.25rem;border-radius:8px;margin:1.5rem 0}
+    .highlight p{margin:0;color:#9FE1CB}
+    .cta-box{background:linear-gradient(135deg,#0d0d1a,#1a1a2e);border:1px solid #534AB7;border-radius:12px;padding:2rem;text-align:center;margin:3rem 0}
+    .cta-box h3{color:#EEEDFE;font-size:1.3rem;margin:0 0 .75rem}
+    .cta-box p{color:#94a3b8;margin:0 0 1.25rem}
+    .btn{display:inline-block;background:#534AB7;color:#fff;padding:.6rem 1.5rem;border-radius:8px;font-weight:700;font-size:.95rem;transition:background .2s}
+    .btn:hover{background:#7F77DD;text-decoration:none}
+    .breadcrumb{font-size:.82rem;color:#64748b;margin-bottom:1.5rem}
+    .breadcrumb a{color:#7F77DD}
+    footer{border-top:1px solid #1e1e3a;padding:2rem 1.25rem;text-align:center;color:#475569;font-size:.82rem;margin-top:4rem}
+    footer a{color:#7F77DD}
+    .related{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:1rem;margin:2rem 0}
+    .related a{background:#0d0d1a;border:1px solid #1e1e3a;border-radius:10px;padding:1rem;display:block;color:#EEEDFE;font-weight:600;font-size:.9rem;transition:border-color .2s}
+    .related a:hover{border-color:#534AB7;text-decoration:none}
+    .related a span{display:block;color:#64748b;font-size:.78rem;font-weight:400;margin-top:.3rem}
+    @media(max-width:600px){h1{font-size:1.55rem}h2{font-size:1.15rem}}
+  </style>
+  <style>
+    .card{background:#0d0d1a;border:1px solid #1e1e3a;border-radius:12px;padding:1.5rem;margin-bottom:1.25rem;transition:border-color .2s}
+    .card:hover{border-color:#534AB7}
+    .card h2{border:none;margin:0 0 .5rem;font-size:1.15rem}
+    .card h2 a{color:#EEEDFE}
+    .card h2 a:hover{color:#AFA9EC;text-decoration:none}
+    .card p{margin:.4rem 0 .75rem;font-size:.9rem;color:#94a3b8}
+    .card .meta{margin:0;font-size:.78rem}
+    .hero{text-align:center;padding:3rem 0 2rem}
+    .hero h1{margin:0 0 .75rem}
+    .hero p{color:#94a3b8;max-width:540px;margin:0 auto}
+  </style>
+</head>
+<body>
+<nav>
+    <a class="logo" href="https://prompt-optimizer-rouge-one.vercel.app">NEXA <span>Optimizer</span></a>
+    <a class="cta" href="https://prompt-optimizer-rouge-one.vercel.app">Try Free →</a>
+  </nav>
+<main class="wrap">
+  <div class="hero">
+    <h1>Prompt Engineering Blog</h1>
+    <p>Free guides to get better results from ChatGPT, Claude, Gemini and every AI model.</p>
+  </div>
+
+  <div class="card">
+    <h2><a href="https://prompt-optimizer-rouge-one.vercel.app/blog/prompt-engineering-for-beginners">Prompt Engineering for Beginners: Complete 2026 Guide</a></h2>
+    <p>Start from zero and learn the 5 core principles that immediately improve your AI results — role assignment, format specification, constraints, context, and iteration.</p>
+    <div class="meta"><span>📅 May 2026</span> &nbsp; <span>⏱ 7 min read</span> &nbsp; <span class="tag">Beginner</span></div>
+  </div>
+
+  <div class="card">
+    <h2><a href="https://prompt-optimizer-rouge-one.vercel.app/blog/how-to-write-better-chatgpt-prompts">How to Write Better Prompts for ChatGPT (2026 Guide)</a></h2>
+    <p>Six proven techniques to get clearer answers, better code, and more creative output from ChatGPT — including chain-of-thought prompting and few-shot examples.</p>
+    <div class="meta"><span>📅 May 2026</span> &nbsp; <span>⏱ 6 min read</span> &nbsp; <span class="tag">ChatGPT</span></div>
+  </div>
+
+  <div class="card">
+    <h2><a href="https://prompt-optimizer-rouge-one.vercel.app/blog/how-to-get-better-results-from-claude">How to Get Better Results from Claude AI (2026)</a></h2>
+    <p>Claude responds differently to prompts than ChatGPT. Learn XML tagging, chain-of-thought, and full-document context techniques specific to Anthropic's Claude.</p>
+    <div class="meta"><span>📅 May 2026</span> &nbsp; <span>⏱ 6 min read</span> &nbsp; <span class="tag">Claude AI</span></div>
+  </div>
+
+  <div class="card">
+    <h2><a href="https://prompt-optimizer-rouge-one.vercel.app/blog/gemini-prompt-tips">Gemini Prompt Tips 2026: Get Better Results from Google AI</a></h2>
+    <p>Google Gemini's multimodal capabilities and Search integration make it uniquely powerful. Learn the specific techniques that unlock its full potential.</p>
+    <div class="meta"><span>📅 May 2026</span> &nbsp; <span>⏱ 5 min read</span> &nbsp; <span class="tag">Gemini</span></div>
+  </div>
+
+  <div class="cta-box">
+    <h3>Stop Writing Prompts Manually</h3>
+    <p>NEXA applies all these techniques automatically. Type your rough idea and get a production-ready prompt in seconds — free.</p>
+    <a class="btn" href="https://prompt-optimizer-rouge-one.vercel.app">Try NEXA Free →</a>
+  </div>
+</main>
+<footer>
+    <p>© 2026 <a href="https://prompt-optimizer-rouge-one.vercel.app">NEXA Prompt Optimizer</a> — Free AI Prompt Engineering Tool</p>
+    <p style="margin-top:.5rem"><a href="https://prompt-optimizer-rouge-one.vercel.app/blog">Blog</a> · <a href="https://prompt-optimizer-rouge-one.vercel.app">Home</a></p>
+  </footer>
+</body>
+</html>
