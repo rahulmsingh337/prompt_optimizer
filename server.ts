@@ -1086,7 +1086,7 @@ If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with s
 
       res.json(parsedData);
     } catch (parseError: any) {
-      logServerError("NEXA_OPTIMIZE_JSON_PARSE", parseError, { targetAI, modePreference, domain, roughRequest });
+      logServerError(parseError, "/api/optimize", "POST", req);
       res.status(500).json({ 
         error: "parse_failed", 
         message: `Structured output synthesis failed to parse. Reason: ${parseError?.message || "Invalid JSON schema structure"}. Please submit a slightly revised prompt.`,
@@ -1096,7 +1096,7 @@ If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with s
     }
 
   } catch (err: any) {
-    logServerError("NEXA_OPTIMIZE_ROUTE", err, { targetAI, modePreference, domain, roughRequest });
+    logServerError(err, "/api/optimize", "POST", req);
 
     let errorType = "api_failed";
     let friendlyMessage = "Failed to run NEXA prompt optimization. Please test again.";
@@ -1239,7 +1239,7 @@ Please synthesize the absolute ultimate tailored optimized prompt incorporating 
 
       res.json(parsedData);
     } catch (parseError: any) {
-      logServerError("NEXA_ANSWERS_JSON_PARSE", parseError, { targetAI, domain, roughRequest, answers });
+      logServerError(parseError, "/api/optimize/answers", "POST", req);
       res.status(500).json({ 
         error: "parse_failed", 
         message: `Structured output merge synthesis failed to parse. Reason: ${parseError?.message || "Invalid JSON schema"}. Please retry submitting your answers.`,
@@ -1249,7 +1249,7 @@ Please synthesize the absolute ultimate tailored optimized prompt incorporating 
     }
 
   } catch (err: any) {
-    logServerError("NEXA_ANSWERS_ROUTE", err, { targetAI, domain, roughRequest, answers });
+    logServerError(err, "/api/optimize/answers", "POST", req);
 
     let errorType = "api_failed";
     let friendlyMessage = "Failed to synthesize answered prompt.";
@@ -1346,7 +1346,7 @@ Your task is to:
 
     res.json(parsedData);
   } catch (err: any) {
-    logServerError("NEXA_TRANSLATE_ROUTE", err, { text });
+    logServerError(err, "/api/translate", "POST", req);
     res.status(500).json({ 
       error: "translation_failed", 
       message: `Translation failed or was rate-limited: ${err.message || "Please try again."}` 
