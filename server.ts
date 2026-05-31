@@ -842,25 +842,6 @@ export function resilientJsonParse(rawText: string): any {
   const sanitized = { ...requestPayload };
   if (sanitized.roughRequest) {
     sanitized.roughRequest = sanitized.roughRequest.length > 500
-      ? sanitized.roughRequest.substring(0, 500) + "... [Truncated for readability]"
-      : sanitized.roughRequest;
-  }
-  console.error(JSON.stringify(sanitized, null, 2));
-
-  // Diagnostic checklist for API Key
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) {
-    console.error("GEMINI_API_KEY Check: MISSING / NOT DEFINED IN ENVIRONMENT");
-  } else {
-    const masked = key.startsWith("AIzaSy")
-      ? `AIzaSy...${key.substring(key.length - 4)}`
-      : `INVALID_PREFIX_STRUCTURE(${key.substring(0, Math.min(6, key.length))}...)`;
-    console.error(`GEMINI_API_KEY Check: PRESENT (${masked}), Length: ${key.length} characters`);
-  }
-  console.error("======================================================================\n");
-}
-
-
 // AI Optimize Entrypoint (Evaluates mode and decides whether to produce Questions or generate Prompt)
 
 
