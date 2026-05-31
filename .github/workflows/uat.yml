@@ -1,82 +1,155 @@
-name: NEXA UAT — Pre-Deploy Checks
+name: NEXA — Full E2E Test Suite
 
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
+  schedule:
+    # Run full suite every Monday at 6am UTC
+    - cron: "0 6 * * 1"
 
 jobs:
-  uat-tests:
-    name: Run UAT Test Suite (82 tests)
+  unit-tests:
+    name: Unit Tests (UAT Suite — 82 cases)
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js 22
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: "22"
           cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Create test environment
+      - run: npm ci
+      - name: Create test env
         run: |
           echo "GEMINI_API_KEY=AIzaSyTestKeyForUnitTestingPurposesOnly1234" > .env
           echo "VITEST=true" >> .env
           echo "NODE_ENV=test" >> .env
-
-      - name: Run UAT test suite
+      - name: Run UAT unit tests
         run: VITEST=true npx vitest run tests/uat_full.test.ts --reporter=verbose
         env:
           VITEST: true
           NODE_ENV: test
 
+  e2e-tests:
+    name: E2E Tests (Comprehensive — API + SEO + Security)
+    runs-on: ubuntu-latest
+    needs: unit-tests
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - run: npm ci
+      - name: Wait for Vercel deployment
+        run: sleep 90
+      - name: Run E2E test suite against production
+        run: VITEST=true npx vitest run tests/e2e_comprehensive.test.ts --reporter=verbose
+        env:
+          VITEST: true
+          NODE_ENV: test
+          TEST_URL: https://prompt-optimizer-rouge-one.vercel.app
+          HEALTH_SECRET: ${{ secrets.HEALTH_SECRET }}
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: uat-test-results
-          path: |
-            tests/
-          retention-days: 7
+          name: e2e-test-results-${{ github.sha }}
+          path: tests/
+          retention-days: 30
 
   health-check:
     name: Production Health Check
     runs-on: ubuntu-latest
-    needs: uat-tests
+    needs: e2e-tests
     if: github.ref == 'refs/heads/main'
-
     steps:
-      - name: Wait for Vercel deployment
-        run: sleep 60
-
       - name: Check /api/health endpoint
         run: |
           RESPONSE=$(curl -sf --max-time 15 \
+            -H "x-health-token: ${{ secrets.HEALTH_SECRET }}" \
             "https://prompt-optimizer-rouge-one.vercel.app/api/health" || echo "FAILED")
-          echo "Health response: $RESPONSE"
+          echo "Response: $RESPONSE"
           if echo "$RESPONSE" | grep -q '"status":"healthy"\|"status":"degraded"'; then
-            echo "✅ Health check passed"
+            echo "✅ Health check PASSED"
           else
-            echo "❌ Health check failed or timed out"
-            echo "$RESPONSE"
+            echo "❌ Health check FAILED"
             exit 1
           fi
 
       - name: Check frontend loads
         run: |
-          STATUS=$(curl -so /dev/null -w "%{http_code}" \
-            --max-time 15 \
+          STATUS=$(curl -so /dev/null -w "%{http_code}" --max-time 15 \
             "https://prompt-optimizer-rouge-one.vercel.app/")
-          echo "Frontend HTTP status: $STATUS"
           if [ "$STATUS" = "200" ]; then
-            echo "✅ Frontend loads correctly"
+            echo "✅ Frontend OK ($STATUS)"
           else
             echo "❌ Frontend returned $STATUS"
+            exit 1
+          fi
+
+      - name: Check sitemap accessible
+        run: |
+          STATUS=$(curl -so /dev/null -w "%{http_code}" --max-time 15 \
+            "https://prompt-optimizer-rouge-one.vercel.app/sitemap.xml")
+          if [ "$STATUS" = "200" ]; then
+            echo "✅ Sitemap OK"
+          else
+            echo "❌ Sitemap returned $STATUS"
+            exit 1
+          fi
+
+      - name: Check blog index accessible
+        run: |
+          STATUS=$(curl -so /dev/null -w "%{http_code}" --max-time 15 \
+            "https://prompt-optimizer-rouge-one.vercel.app/blog/")
+          echo "Blog status: $STATUS"
+          # 200 or 301 redirect both acceptable
+          if [ "$STATUS" = "200" ] || [ "$STATUS" = "301" ]; then
+            echo "✅ Blog OK"
+          else
+            echo "❌ Blog returned $STATUS"
+            exit 1
+          fi
+
+  security-scan:
+    name: Security — No Secrets in Source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Scan for exposed API keys
+        run: |
+          echo "Scanning for exposed secrets..."
+          FOUND=0
+
+          # Check for real Gemini key patterns
+          if grep -r "AIzaSy[a-zA-Z0-9_-]\{30,\}" --include="*.ts" --include="*.tsx" --include="*.js" --include="*.json" . --exclude-dir=node_modules --exclude-dir=dist; then
+            echo "❌ CRITICAL: Gemini API key found in source!"
+            FOUND=1
+          fi
+
+          # Check for real Groq key patterns
+          if grep -r "gsk_[a-zA-Z0-9]\{40,\}" --include="*.ts" --include="*.tsx" . --exclude-dir=node_modules --exclude-dir=dist; then
+            echo "❌ CRITICAL: Groq API key found in source!"
+            FOUND=1
+          fi
+
+          # Check for real GitHub token patterns
+          if grep -r "ghp_[a-zA-Z0-9]\{36,\}" --include="*.ts" --include="*.tsx" . --exclude-dir=node_modules --exclude-dir=dist; then
+            echo "❌ CRITICAL: GitHub token found in source!"
+            FOUND=1
+          fi
+
+          # Check for hardcoded email in owner bypass
+          if grep -r "rs826748@gmail.com" --include="*.ts" . --exclude-dir=node_modules; then
+            echo "❌ CRITICAL: Owner email hardcoded in source!"
+            FOUND=1
+          fi
+
+          if [ $FOUND -eq 0 ]; then
+            echo "✅ No secrets found in source code"
+          else
             exit 1
           fi
