@@ -298,7 +298,10 @@ export interface TokenDatabase {
 
 const TOKENS_FILE = path.join(process.cwd(), "daily_tokens.json");
 export const DAILY_LIMIT = 500000;
-export const OWNER_EMAIL = (process.env.OWNER_EMAIL || "rs826748@gmail.com").toLowerCase().trim();
+export const OWNER_EMAIL = (process.env.OWNER_EMAIL || "").toLowerCase().trim();
+if (!OWNER_EMAIL) {
+  console.warn("[NEXA SECURITY] OWNER_EMAIL env var is not set. Owner bypass is disabled.");
+}
 
 export function loadTokenDatabase(): TokenDatabase {
   try {
@@ -872,7 +875,13 @@ export function logServerError(
 }
 
 // Health check endpoint
-app.get("/api/health", async (_req: any, res: any) => {
+app.get("/api/health", async (req: any, res: any) => {
+  // Protect health endpoint with a secret token
+  const healthToken = process.env.HEALTH_SECRET?.trim();
+  const provided = req.headers["x-health-token"] || req.query.token;
+  if (healthToken && provided !== healthToken) {
+    return res.status(401).json({ error: "unauthorized", message: "Invalid health token." });
+  }
   const startTime = Date.now();
 
   // Check Groq connectivity
@@ -900,9 +909,14 @@ app.get("/api/health", async (_req: any, res: any) => {
   if (geminiKey) {
     try {
       const t = Date.now();
+      // Use POST with key in Authorization header — never pass keys in URLs (URL logging risk)
       const r = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models?key=${geminiKey}`,
-        { signal: AbortSignal.timeout(5000) }
+        "https://generativelanguage.googleapis.com/v1beta/models",
+        {
+          method: "GET",
+          headers: { "x-goog-api-key": geminiKey },
+          signal: AbortSignal.timeout(5000)
+        }
       );
       geminiLatencyMs = Date.now() - t;
       geminiStatus = r.ok ? "healthy" : "degraded";
