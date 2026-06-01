@@ -7,6 +7,11 @@ import { auth, googleProvider, signInWithPopup } from "./firebase";
 import { onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
 
 export default function App() {
+  // Guard: if somehow React loads on /, send to landing
+  if (typeof window !== "undefined" && window.location.pathname === "/") {
+    window.location.replace("/landing");
+    return null;
+  }
   const [user, setUser] = useState<User | null>(null);
   const [currentRoute, setCurrentRoute] = useState<"sign-in" | "app">("sign-in");
   const [sessionChecked, setSessionChecked] = useState<boolean>(false);
