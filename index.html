@@ -68,6 +68,12 @@
     </script>
   </head>
   <body>
+    <script>
+      // Redirect root to landing page before React mounts — instant, no flash
+      if (window.location.pathname === "/" || window.location.pathname === "") {
+        window.location.replace("/landing");
+      }
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
