@@ -19,7 +19,7 @@ export default function SignInPage({ onGoogleSignIn, isLoading }: SignInPageProp
         <button
           type="button"
           onClick={() => { window.history.pushState({}, "", "/"); window.location.reload(); }}
-          className="text-xs font-mono text-slate-500 hover:text-slate-300 transition-colors cursor-pointer bg-transparent border-none flex items-center gap-1"
+          className="text-sm font-semibold text-slate-300 hover:text-white transition-colors cursor-pointer bg-transparent border-none flex items-center gap-1"
           title="Back to home"
         >
           ← Home
