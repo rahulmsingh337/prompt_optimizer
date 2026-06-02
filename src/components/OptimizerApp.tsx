@@ -894,7 +894,12 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
 
       {/* Main APP Header */}
       <header className="relative z-10 border-b border-slate-900 bg-slate-950/40 backdrop-blur px-4 sm:px-6 py-4 flex flex-col sm:flex-row gap-4 sm:gap-0 items-center justify-between">
-        <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => { window.history.pushState({}, "", "/"); window.location.reload(); }}
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity select-none bg-transparent border-none p-0"
+          title="Back to home"
+        >
           <div className="w-9 h-9 rounded-lg bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shrink-0">
             <span className="font-display font-black text-sm text-white">N</span>
           </div>
@@ -904,7 +909,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
               <span className="text-[9px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded uppercase font-bold">LIVE AGENT</span>
             </div>
           </div>
-        </div>
+        </button>
 
         {/* User Badge Profile + Logout Control */}
         <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2.5 sm:gap-3 w-full sm:w-auto">
