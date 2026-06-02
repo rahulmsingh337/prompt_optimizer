@@ -15,7 +15,15 @@ export default function SignInPage({ onGoogleSignIn, isLoading }: SignInPageProp
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[550px] h-[550px] bg-sky-500/5 rounded-full blur-[130px] pointer-events-none"></div>
 
       {/* Landing Back Header */}
-      <header className="max-w-7xl w-full mx-auto px-6 py-6 flex items-center justify-end relative z-10">
+      <header className="max-w-7xl w-full mx-auto px-6 py-6 flex items-center justify-between relative z-10">
+        <button
+          type="button"
+          onClick={() => { window.history.pushState({}, "", "/"); window.location.reload(); }}
+          className="text-xs font-mono text-slate-500 hover:text-slate-300 transition-colors cursor-pointer bg-transparent border-none flex items-center gap-1"
+          title="Back to home"
+        >
+          ← Home
+        </button>
         <span className="text-xs font-mono text-slate-500 hover:text-slate-400">
           NEXA Gatekeeper
         </span>
