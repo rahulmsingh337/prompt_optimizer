@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import SignInPage from "./components/SignInPage";
+import LandingPage from "./components/LandingPage";
 import OptimizerApp from "./components/OptimizerApp";
 import PlexusBackground from "./components/PlexusBackground";
 import { User } from "./types";
@@ -7,13 +8,11 @@ import { auth, googleProvider, signInWithPopup } from "./firebase";
 import { onAuthStateChanged, signOut as firebaseSignOut } from "firebase/auth";
 
 export default function App() {
-  // Guard: if somehow React loads on /, send to landing
-  if (typeof window !== "undefined" && window.location.pathname === "/") {
-    window.location.replace("/landing");
-    return null;
-  }
   const [user, setUser] = useState<User | null>(null);
-  const [currentRoute, setCurrentRoute] = useState<"sign-in" | "app">("sign-in");
+  const [currentRoute, setCurrentRoute] = useState<"landing" | "sign-in" | "app">(
+    window.location.pathname === "/sign-in" ? "sign-in" :
+    window.location.pathname === "/app" ? "app" : "landing"
+  );
   const [sessionChecked, setSessionChecked] = useState<boolean>(false);
   const [isAuthenticating, setIsAuthenticating] = useState<boolean>(false);
 
@@ -32,8 +31,11 @@ export default function App() {
         window.history.replaceState({}, "", "/app");
       } else {
         setUser(null);
-        setCurrentRoute("sign-in");
-        window.history.replaceState({}, "", "/sign-in");
+        // Only redirect to sign-in if already in app — landing users stay on landing
+        if (currentRoute === "app") {
+          setCurrentRoute("sign-in");
+          window.history.replaceState({}, "", "/sign-in");
+        }
       }
       setSessionChecked(true);
     });
@@ -54,7 +56,7 @@ export default function App() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
-  const navigateTo = (route: "sign-in" | "app") => {
+  const navigateTo = (route: "landing" | "sign-in" | "app") => {
     setCurrentRoute(route);
     window.history.pushState({}, "", `/${route}`);
   };
@@ -92,6 +94,15 @@ export default function App() {
   };
 
   if (!sessionChecked) return null;
+
+  // Landing page — no PlexusBackground, fully standalone
+  if (currentRoute === "landing") {
+    return (
+      <LandingPage
+        onGetStarted={() => navigateTo("sign-in")}
+      />
+    );
+  }
 
   return (
     <>
