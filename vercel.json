@@ -16,11 +16,7 @@
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/index.ts" },
-    { "src": "^/sign-in/?$", "dest": "/dist/index.html" },
-    { "src": "^/app/?$", "dest": "/dist/index.html" },
-    { "src": "^/landing/?$", "dest": "/dist/landing/index.html" },
-    { "src": "^/blog/?$", "dest": "/dist/blog/index.html" },
-    { "src": "^/blog/([^/]+)/?$", "dest": "/dist/blog/$1/index.html" },
-    { "src": "/(.*)", "dest": "/dist/$1" }
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
