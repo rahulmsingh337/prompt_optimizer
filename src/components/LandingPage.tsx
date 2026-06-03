@@ -31,15 +31,17 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
 
     // Create particles
     const COUNT = 120;
-    const particles = Array.from({ length: COUNT }, (_, i) => ({
+    const particles = Array.from({ length: COUNT }, () => ({
       x: Math.random() * window.innerWidth,
       y: Math.random() * window.innerHeight,
-      z: Math.random() * 4,           // depth layer 0-4
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: (Math.random() - 0.5) * 0.3,
-      vz: (Math.random() - 0.5) * 0.02,
-      hue: Math.random() < 0.6 ? 250 : 165,   // purple or teal
+      z: Math.random() * 4,
+      vx: (Math.random() - 0.5) * 1.2,
+      vy: (Math.random() - 0.5) * 1.2,
+      vz: (Math.random() - 0.5) * 0.03,
+      hue: Math.random() < 0.6 ? 250 : 165,
       phase: Math.random() * Math.PI * 2,
+      angle: Math.random() * Math.PI * 2,
+      speed: 0.4 + Math.random() * 0.8,
     }));
 
     const draw = () => {
@@ -84,10 +86,11 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         if (p.z < 0) p.z = 0;
         if (p.z > 4) p.z = 4;
 
-        p.x += p.vx * (0.4 + p.z * 0.2);
-        p.y += p.vy * (0.4 + p.z * 0.2);
-        // friction
-        p.vx *= 0.97; p.vy *= 0.97;
+        // Continuous drift using angle — particles NEVER stop
+        p.angle += 0.008 + p.z * 0.002;
+        p.x += Math.cos(p.angle + time * 0.3) * p.speed + p.vx * 0.3;
+        p.y += Math.sin(p.angle * 0.7 + time * 0.2) * p.speed + p.vy * 0.3;
+        p.vx *= 0.92; p.vy *= 0.92;
 
         // Wrap edges
         if (p.x < 0) p.x = canvas.width;
