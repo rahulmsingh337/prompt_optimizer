@@ -1,12 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// NEXA PROMPT OPTIMIZER — COMPREHENSIVE E2E TEST SUITE
+// Prompify PROMPT OPTIMIZER — COMPREHENSIVE E2E TEST SUITE
 // 147 test cases covering: Auth, Core, API, Security, Performance,
 // Cache/Queue, UI, Platform Buttons, SEO, Error Handling, Non-Functional
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BASE_URL = process.env.TEST_URL || "https://prompt-optimizer-rouge-one.vercel.app";
+const BASE_URL = process.env.TEST_URL || "https://prompify.vercel.app";
 const HEALTH_TOKEN = process.env.HEALTH_SECRET || "nexa-health-2026";
 
 // ── HTTP helpers ──────────────────────────────────────────────────────────────
@@ -285,7 +285,7 @@ describe("TC-I: SEO and Crawlability Tests", () => {
     const res = await get("/manifest.json");
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.name).toContain("NEXA");
+    expect(body.name).toContain("Prompify");
     expect(body.display).toBe("standalone");
   });
 

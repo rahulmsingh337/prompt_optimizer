@@ -26,7 +26,7 @@ function mockRes(): MockResponse {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-describe("NEXA FULL UAT — End-to-End Test Suite", () => {
+describe("Prompify FULL UAT — End-to-End Test Suite", () => {
 
   beforeEach(() => { feedbackDatabase.length = 0; });
 
@@ -258,7 +258,7 @@ describe("NEXA FULL UAT — End-to-End Test Suite", () => {
   describe("TC-06 │ Syntax Highlighter Auto-Detection", () => {
     it("returns markdown for empty input",   () => expect(detectLanguage("")).toBe("markdown"));
     it("returns markdown for plain prose",   () => expect(detectLanguage("Just a sentence.")).toBe("markdown"));
-    it("detects JSON object",  () => expect(detectLanguage('{ "name": "NEXA", "version": "1.0.0" }')).toBe("json"));
+    it("detects JSON object",  () => expect(detectLanguage('{ "name": "Prompify", "version": "1.0.0" }')).toBe("json"));
     it("detects JSON array",   () => expect(detectLanguage('["one", "two", "three"]')).toBe("json"));
     it("detects SQL",          () => expect(detectLanguage("SELECT name FROM users WHERE id = 1 JOIN orders ON users.id = orders.uid")).toBe("sql"));
     it("detects Python",       () => expect(detectLanguage("def run():\n    import os\n    print(self.result)")).toBe("python"));

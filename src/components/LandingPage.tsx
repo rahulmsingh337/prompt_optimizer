@@ -8,7 +8,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
-    document.title = "NEXA Prompt Optimizer – Turn Rough Ideas into Perfect AI Prompts";
+    document.title = "Prompify – Turn Rough Ideas into Perfect AI Prompts";
   }, []);
 
   useEffect(() => {
@@ -142,7 +142,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       <nav style={{ position: "sticky", top: 0, zIndex: 99, background: "rgba(13,13,26,.95)", borderBottom: "1px solid #1e1e3a", backdropFilter: "blur(12px)", padding: ".9rem 1.5rem", display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem" }}>
         <div style={{ fontWeight: 800, fontSize: "1.15rem", color: "#EEEDFE", letterSpacing: "-0.5px", display: "flex", alignItems: "center", gap: ".5rem" }}>
           <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#5DCAA5", display: "inline-block" }}></span>
-          NEXA
+          Prompify
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
           <a href="#how-it-works" style={{ fontSize: ".85rem", color: "#94a3b8", textDecoration: "none" }}>How it works</a>
@@ -167,7 +167,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           </span>
         </h1>
         <p style={{ fontSize: "1.05rem", color: "#94a3b8", maxWidth: 580, margin: "0 auto 2.5rem", lineHeight: 1.7 }}>
-          NEXA analyzes your vague request and restructures it into a production-ready prompt using the 4-D pipeline: Deconstruct, Diagnose, Develop, Deliver.
+          Prompify analyzes your vague request and restructures it into a production-ready prompt using the 4-D pipeline: Deconstruct, Diagnose, Develop, Deliver.
         </p>
         <div style={{ display: "flex", gap: "1rem", justifyContent: "center", flexWrap: "wrap" }}>
           <button onClick={onGetStarted} style={{ background: "linear-gradient(135deg,#534AB7,#1D9E75)", color: "#fff", padding: ".75rem 2rem", borderRadius: 10, fontWeight: 700, fontSize: ".95rem", border: "none", cursor: "pointer", display: "inline-flex", alignItems: "center", gap: ".5rem" }}>
@@ -187,12 +187,12 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
         <p style={{ textAlign: "center", fontSize: ".75rem", fontWeight: 700, letterSpacing: 2, color: "#475569", textTransform: "uppercase", marginBottom: "2rem" }}>See the difference</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", gap: "1rem", alignItems: "start" }}>
           <div style={{ background: "#0d0d1a", border: "1px solid #1e1e3a", borderRadius: 14, padding: "1.25rem", fontSize: ".82rem", lineHeight: 1.7, fontFamily: "monospace", color: "#94a3b8" }}>
-            <div style={{ fontSize: ".68rem", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: ".75rem", color: "#ef4444" }}>✗ Before NEXA</div>
+            <div style={{ fontSize: ".68rem", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: ".75rem", color: "#ef4444" }}>✗ Before Prompify</div>
             "write me a marketing email for my product"
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: ".5rem", color: "#7F77DD", fontSize: "1.5rem", marginTop: "2rem" }}>→</div>
           <div style={{ background: "rgba(83,74,183,.06)", border: "1px solid #534AB7", borderRadius: 14, padding: "1.25rem", fontSize: ".82rem", lineHeight: 1.7, fontFamily: "monospace", color: "#94a3b8" }}>
-            <div style={{ fontSize: ".68rem", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: ".75rem", color: "#5DCAA5" }}>✓ After NEXA</div>
+            <div style={{ fontSize: ".68rem", fontWeight: 700, letterSpacing: 2, textTransform: "uppercase", marginBottom: ".75rem", color: "#5DCAA5" }}>✓ After Prompify</div>
             "You are a senior B2B copywriter. Write a persuasive cold email (max 180 words) for [Product] targeting [Audience]. Structure: (1) subject line using their pain point, (2) hook with specific problem, (3) quantified benefit, (4) social proof, (5) single CTA. Tone: professional but conversational."
           </div>
         </div>
@@ -201,7 +201,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
       {/* HOW IT WORKS */}
       <section id="how-it-works" style={{ maxWidth: 900, margin: "0 auto", padding: "3rem 1.5rem" }}>
         <p style={{ textAlign: "center", fontSize: ".72rem", fontWeight: 700, letterSpacing: 3, color: "#5DCAA5", textTransform: "uppercase", marginBottom: ".75rem" }}>The 4-D Pipeline</p>
-        <h2 style={{ textAlign: "center", fontSize: "clamp(1.5rem,3vw,2rem)", fontWeight: 800, color: "#EEEDFE", marginBottom: ".75rem", letterSpacing: -.5 }}>How NEXA Transforms Your Prompts</h2>
+        <h2 style={{ textAlign: "center", fontSize: "clamp(1.5rem,3vw,2rem)", fontWeight: 800, color: "#EEEDFE", marginBottom: ".75rem", letterSpacing: -.5 }}>How Prompify Transforms Your Prompts</h2>
         <p style={{ textAlign: "center", color: "#94a3b8", fontSize: ".95rem", maxWidth: 520, margin: "0 auto 2.5rem" }}>Four stages run automatically every time you hit Optimize</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: "1.25rem" }}>
           {[
@@ -247,7 +247,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           <h2 style={{ fontSize: "clamp(1.5rem,3vw,2rem)", fontWeight: 800, color: "#EEEDFE", marginBottom: ".75rem", letterSpacing: -.5 }}>Start Optimizing for Free</h2>
           <p style={{ color: "#94a3b8", marginBottom: "2rem", fontSize: ".95rem" }}>Sign in with Google to unlock all features. No credit card. No limits on prompt quality.</p>
           <button onClick={onGetStarted} style={{ background: "linear-gradient(135deg,#534AB7,#1D9E75)", color: "#fff", padding: ".75rem 2rem", borderRadius: 10, fontWeight: 700, fontSize: ".95rem", border: "none", cursor: "pointer" }}>
-            Open NEXA Prompt Optimizer →
+            Open Prompify →
           </button>
           <p style={{ marginTop: "1.25rem", fontSize: ".78rem", color: "#475569" }}>Free forever · No credit card · Works with ChatGPT, Claude & Gemini</p>
         </div>
@@ -261,7 +261,7 @@ export default function LandingPage({ onGetStarted }: LandingPageProps) {
           <a href={`${BASE}/blog/how-to-write-better-chatgpt-prompts`} style={{ color: "#7F77DD" }}>ChatGPT Tips</a>
           <a href={`${BASE}/blog/gemini-prompt-tips`} style={{ color: "#7F77DD" }}>Gemini Tips</a>
         </div>
-        <p>© 2026 NEXA Prompt Optimizer — Free AI Prompt Engineering Tool</p>
+        <p>© 2026 Prompify — Free AI Prompt Engineering Tool</p>
       </footer>
 
       <style>{`@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}`}</style>

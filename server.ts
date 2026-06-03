@@ -18,7 +18,7 @@ export function validateGeminiApiKey(apiKey: string | undefined): void {
   if (!apiKey || apiKey.trim() === "") {
     throw new Error(
       "GEMINI_API_KEY is missing or undefined in your workspace environment variables. " +
-      "A valid Google Gemini API key is required to power the server-side NEXA prompt optimization engine. " +
+      "A valid Google Gemini API key is required to power the server-side Prompify prompt optimization engine. " +
       "Please open the Settings/Secrets panel in the AI Studio sidebar, add an entry with key 'GEMINI_API_KEY', " +
       "and provide a valid API key retrieved from Google AI Studio (https://aistudio.google.com/)."
     );
@@ -35,7 +35,7 @@ export function validateGeminiApiKey(apiKey: string | undefined): void {
     throw new Error(
       `GEMINI_API_KEY appears to contain an invalid placeholder value ("${trimmedKey}"). ` +
       "You must supply a genuine, active API key from Google AI Studio (https://aistudio.google.com/) " +
-      "for NEXA to run generative prompt compilations."
+      "for Prompify to run generative prompt compilations."
     );
   }
 
@@ -82,7 +82,7 @@ function rotateApiKey(): void {
   const pool = getApiKeyPool();
   if (pool.length > 1) {
     currentKeyIndex = (currentKeyIndex + 1) % pool.length;
-    console.warn(`[NEXA KEY ROTATION] Switched to key index ${currentKeyIndex} (pool: ${pool.length} keys)`);
+    console.warn(`[Prompify KEY ROTATION] Switched to key index ${currentKeyIndex} (pool: ${pool.length} keys)`);
   }
 }
 
@@ -134,7 +134,7 @@ async function callLLM(params: {
       });
       const text = completion.choices[0]?.message?.content || "";
       if (text.trim()) {
-        console.info("[NEXA LLM] Groq responded successfully");
+        console.info("[Prompify LLM] Groq responded successfully");
         return text;
       }
     } catch (groqErr: any) {
@@ -142,9 +142,9 @@ async function callLLM(params: {
         JSON.stringify(groqErr).includes("rate_limit") ||
         JSON.stringify(groqErr).includes("quota");
       if (isQuota) {
-        console.warn("[NEXA LLM] Groq quota hit — falling back to Gemini");
+        console.warn("[Prompify LLM] Groq quota hit — falling back to Gemini");
       } else {
-        console.warn("[NEXA LLM] Groq error — falling back to Gemini:", groqErr?.message);
+        console.warn("[Prompify LLM] Groq error — falling back to Gemini:", groqErr?.message);
       }
     }
   }
@@ -166,7 +166,7 @@ async function callLLM(params: {
   if (!text?.trim()) {
     throw new Error("EMPTY_OUTPUT: Both Groq and Gemini returned blank content.");
   }
-  console.info("[NEXA LLM] Gemini fallback responded successfully");
+  console.info("[Prompify LLM] Gemini fallback responded successfully");
   return text;
 }
 
@@ -300,7 +300,7 @@ const TOKENS_FILE = path.join(process.cwd(), "daily_tokens.json");
 export const DAILY_LIMIT = 500000;
 export const OWNER_EMAIL = (process.env.OWNER_EMAIL || "").toLowerCase().trim();
 if (!OWNER_EMAIL) {
-  console.warn("[NEXA SECURITY] OWNER_EMAIL env var is not set. Owner bypass is disabled.");
+  console.warn("[Prompify SECURITY] OWNER_EMAIL env var is not set. Owner bypass is disabled.");
 }
 
 export function loadTokenDatabase(): TokenDatabase {
@@ -310,7 +310,7 @@ export function loadTokenDatabase(): TokenDatabase {
       return parsed || {};
     }
   } catch (error) {
-    console.error("[NEXA TOKEN ENGINE] Failed load:", error);
+    console.error("[Prompify TOKEN ENGINE] Failed load:", error);
   }
   return {};
 }
@@ -322,7 +322,7 @@ export function saveTokenDatabase(dbData: TokenDatabase): void {
     // On read-only filesystems (e.g. Vercel serverless), writes will fail silently.
     // Token enforcement is best-effort in stateless deployments.
     if (error?.code !== "EROFS" && error?.code !== "EACCES") {
-      console.error("[NEXA TOKEN ENGINE] Failed save:", error);
+      console.error("[Prompify TOKEN ENGINE] Failed save:", error);
     }
   }
 }
@@ -426,14 +426,14 @@ async function callGeminiWithRetry(
       // On quota errors: rotate to next key immediately before retrying
       if (isQuotaError && pool.length > 1) {
         rotateApiKey();
-        console.warn(`[NEXA KEY ROTATION] Quota hit — rotated key on attempt ${attempt}/${maxRetries}`);
+        console.warn(`[Prompify KEY ROTATION] Quota hit — rotated key on attempt ${attempt}/${maxRetries}`);
         // Short delay after key rotation
         await new Promise(resolve => setTimeout(resolve, 500));
       } else {
         // Exponential backoff with jitter for overload errors
         const jitter = Math.random() * 1000;
         const delay = baseDelayMs * attempt + jitter;
-        console.warn(`[NEXA RETRY] Gemini overload on attempt ${attempt}/${maxRetries}. Retrying in ${Math.round(delay)}ms...`);
+        console.warn(`[Prompify RETRY] Gemini overload on attempt ${attempt}/${maxRetries}. Retrying in ${Math.round(delay)}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -533,7 +533,7 @@ app.post("/api/feedback", (req: any, res: any) => {
     feedbackDatabase.pop();
   }
 
-  console.info(`[NEXA Feedback Collected Anonymously] Rating: ${rating} | Domain: ${domain} | Target: ${targetAI}`);
+  console.info(`[Prompify Feedback Collected Anonymously] Rating: ${rating} | Domain: ${domain} | Target: ${targetAI}`);
   res.json({ success: true, count: feedbackDatabase.length });
 });
 
@@ -547,7 +547,7 @@ app.get("/api/feedback", (req: any, res: any) => {
 // PROMPT OPTIMIZER LOGIC (PROTECTED)
 // ----------------------------------------------------
 
-const SYSTEM_INSTRUCTION = `You are NEXA, the world's most senior AI Prompt Engineer Agent.
+const SYSTEM_INSTRUCTION = `You are Prompify, the world's most senior AI Prompt Engineer Agent.
 Your primary directive is to transform crude, ambiguous, chaotic, or plain user requests into highly-structured, production-ready system instructions.
 
 You strictly apply the 4-D Prompt Engineering Methodology with an ADVANCED DIAGNOSTICS scope:
@@ -564,7 +564,7 @@ You strictly apply the 4-D Prompt Engineering Methodology with an ADVANCED DIAGN
 
 --------------------------------------------------------------------------------
 OUTPUT REQUIREMENTS FOR ADVANCED DIAGNOSIS DIAGRAMMING:
-To display the deep value of the NEXA prompt engine, you MUST construct the following fields:
+To display the deep value of the Prompify prompt engine, you MUST construct the following fields:
 - "improvements": Must list 3-5 distinct, targeted improvements identifying precisely what was diagnosed.
   - For code/code-generation prompts: You MUST include at least one diagnostic starting with "DIAGNOSTIC (Security/Edge-case)" focusing directly on missing input validation, potential injection vulnerabilities (such as SQL injection, Command injection, XSS), unhandled error states, or insecure endpoint configurations. Also include at least one starting with "DIAGNOSTIC (Implicit Constraint)" focusing on resilient/robust patterns or connection pooling limits.
   - For data-related/API prompts: You MUST include at least one diagnostic starting with "DIAGNOSTIC (Data-Leakage-Risk)" focusing directly on data leakage risks like credential exposures or PII handling, credential masking, or unauthorized transport/access controls.
@@ -751,7 +751,7 @@ export function scanRoughRequestForRisks(roughRequest: any): { improvements: str
       techniquesApplied.push("Canonical Path Resolving Validation");
     }
   } catch (scanError) {
-    console.warn("[NEXA SECURITY SCANNER] Failed to perform request scan. Proceeding with clean fallback.", scanError);
+    console.warn("[Prompify SECURITY SCANNER] Failed to perform request scan. Proceeding with clean fallback.", scanError);
   }
 
   return { improvements, techniquesApplied };
@@ -790,7 +790,7 @@ export function resilientJsonParse(rawText: string): any {
   try {
     return JSON.parse(cleaned);
   } catch (firstError: any) {
-    console.warn(`[NEXA RECOVERY ENGINE] Initial parse failed: ${firstError.message}`);
+    console.warn(`[Prompify RECOVERY ENGINE] Initial parse failed: ${firstError.message}`);
 
     // 5. Strip trailing commas (common LLM generation artifact)
     let recovered = cleaned.replace(/,\s*([}\]])/g, "$1");
@@ -871,7 +871,7 @@ export function logServerError(
   };
   errorLog.unshift(entry);
   if (errorLog.length > MAX_ERROR_LOG) errorLog.pop();
-  console.error(`[NEXA ERROR] ${method} ${endpoint}: ${entry.error}`);
+  console.error(`[Prompify ERROR] ${method} ${endpoint}: ${entry.error}`);
 }
 
 // Health check endpoint
@@ -971,7 +971,7 @@ app.post("/api/optimize", async (req: any, res: any) => {
   const cacheKey = getCacheKey(roughRequest || "", domain || "General", targetAI || "ChatGPT", modeOverride);
   const cached = getCached(cacheKey);
   if (cached) {
-    console.info("[NEXA CACHE] Cache hit — serving instantly");
+    console.info("[Prompify CACHE] Cache hit — serving instantly");
     return res.json({ ...cached, _cached: true });
   }
 
@@ -1009,7 +1009,7 @@ app.post("/api/optimize", async (req: any, res: any) => {
     const client = getGeminiClient();
     
     // Build context payload
-    const userPromptText = `Optimize this prompt based on NEXA instructions:
+    const userPromptText = `Optimize this prompt based on Prompify instructions:
 Target AI: ${targetAI || "ChatGPT"}
 Domain Subject: ${domain || "General"}
 Requested Mode: ${selectedMode}
@@ -1067,7 +1067,7 @@ If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with s
           });
         }
       } catch (scanError) {
-        console.warn("[NEXA ROUTE OPTIMIZATION] Scan injection failed defensively:", scanError);
+        console.warn("[Prompify ROUTE OPTIMIZATION] Scan injection failed defensively:", scanError);
       }
 
       // Calculate token estimation and deduct
@@ -1099,7 +1099,7 @@ If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with s
     logServerError(err, "/api/optimize", "POST", req);
 
     let errorType = "api_failed";
-    let friendlyMessage = "Failed to run NEXA prompt optimization. Please test again.";
+    let friendlyMessage = "Failed to run Prompify prompt optimization. Please test again.";
 
     const errMsg = err.message || "";
     if (errMsg.includes("GEMINI_API_KEY")) {
@@ -1118,7 +1118,7 @@ If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with s
       errorType = "empty_output";
       friendlyMessage = "Response synthesis anomaly: Gemini returned successfully but the text content block was empty. Please check the model status and retry.";
     } else {
-      friendlyMessage = `NEXA Engine API error: ${err.message || "An unexpected error occurred during generative execution."}`;
+      friendlyMessage = `Prompify Engine API error: ${err.message || "An unexpected error occurred during generative execution."}`;
     }
 
     res.status(500).json({ error: errorType, message: friendlyMessage });
@@ -1159,7 +1159,7 @@ app.post("/api/optimize/answers", async (req: any, res: any) => {
     // Compile clarification context string
     const answersString = answers.map((item: any) => `Question: ${item.question}\nAnswer: ${item.answer}`).join("\n\n");
 
-    const userPromptText = `We are returning the clarifying question responses for a DETAIL-mode NEXA prompt optimization.
+    const userPromptText = `We are returning the clarifying question responses for a DETAIL-mode Prompify prompt optimization.
 
 Original Request:
 "${roughRequest}"
@@ -1220,7 +1220,7 @@ Please synthesize the absolute ultimate tailored optimized prompt incorporating 
           });
         }
       } catch (scanError) {
-        console.warn("[NEXA ROUTE ANSWERS] Scan injection failed defensively:", scanError);
+        console.warn("[Prompify ROUTE ANSWERS] Scan injection failed defensively:", scanError);
       }
 
       // Calculate token estimation and deduct
@@ -1371,7 +1371,7 @@ if (process.env.NODE_ENV !== "production" && process.env.NODE_ENV !== "test" && 
     app.use(vite.middlewares);
     console.info("Vite development middleware mounted successfully.");
     app.listen(PORT, "0.0.0.0", () => {
-      console.log(`NEXA Prompt Agent is listening on port ${PORT}`);
+      console.log(`Prompify is listening on port ${PORT}`);
     });
   })().catch((error) => {
     console.error("Critical server boot error: ", error);

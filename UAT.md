@@ -1,12 +1,12 @@
-# NEXA Prompt Agent 🚀
+# Prompify 🚀
 ## User Acceptance Testing (UAT) Specifications & Test Report
 
-This document defines the User Acceptance Testing (UAT) criteria, functional specifications, test cases, and formal execution results for the **NEXA Prompt Agent** web application.
+This document defines the User Acceptance Testing (UAT) criteria, functional specifications, test cases, and formal execution results for the **Prompify** web application.
 
 ---
 
 ## 📋 1. UAT Scope & Application Features
-The NEXA Prompt Agent is a stateless prompt-engineering workspace that converts raw prompts into production-grade LLM system instructions using the **4-D Methodology** (Deconstruct, Diagnose, Develop, Deliver).
+The Prompify is a stateless prompt-engineering workspace that converts raw prompts into production-grade LLM system instructions using the **4-D Methodology** (Deconstruct, Diagnose, Develop, Deliver).
 
 ### Tested Modules & Components:
 1. **Landing Page (`/`):** Public greeting card layout detailing the 4-D process and holding a local, stateful, read-only Interactive Demo Widget representing Marketing and database engineering presets.

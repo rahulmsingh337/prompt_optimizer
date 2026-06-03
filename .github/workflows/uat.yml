@@ -1,4 +1,4 @@
-name: NEXA — Full E2E Test Suite
+name: Prompify — Full E2E Test Suite
 
 on:
   push:
@@ -52,7 +52,7 @@ jobs:
         env:
           VITEST: true
           NODE_ENV: test
-          TEST_URL: https://prompt-optimizer-rouge-one.vercel.app
+          TEST_URL: https://prompify.vercel.app
           HEALTH_SECRET: ${{ secrets.HEALTH_SECRET }}
       - name: Upload test results
         if: always()
@@ -72,7 +72,7 @@ jobs:
         run: |
           RESPONSE=$(curl -sf --max-time 15 \
             -H "x-health-token: ${{ secrets.HEALTH_SECRET }}" \
-            "https://prompt-optimizer-rouge-one.vercel.app/api/health" || echo "FAILED")
+            "https://prompify.vercel.app/api/health" || echo "FAILED")
           echo "Response: $RESPONSE"
           if echo "$RESPONSE" | grep -q '"status":"healthy"\|"status":"degraded"'; then
             echo "✅ Health check PASSED"
@@ -84,7 +84,7 @@ jobs:
       - name: Check frontend loads
         run: |
           STATUS=$(curl -so /dev/null -w "%{http_code}" --max-time 15 \
-            "https://prompt-optimizer-rouge-one.vercel.app/")
+            "https://prompify.vercel.app/")
           if [ "$STATUS" = "200" ]; then
             echo "✅ Frontend OK ($STATUS)"
           else
@@ -95,7 +95,7 @@ jobs:
       - name: Check sitemap accessible
         run: |
           STATUS=$(curl -so /dev/null -w "%{http_code}" --max-time 15 \
-            "https://prompt-optimizer-rouge-one.vercel.app/sitemap.xml")
+            "https://prompify.vercel.app/sitemap.xml")
           if [ "$STATUS" = "200" ]; then
             echo "✅ Sitemap OK"
           else

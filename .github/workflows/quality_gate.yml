@@ -1,4 +1,4 @@
-name: NEXA Quality Gate
+name: Prompify Quality Gate
 
 on:
   push:

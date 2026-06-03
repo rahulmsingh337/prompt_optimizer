@@ -68,6 +68,6 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
     operationType,
     path,
   };
-  console.error("NEXA Firestore Error: ", JSON.stringify(errInfo));
+  console.error("Prompify Firestore Error: ", JSON.stringify(errInfo));
   throw new Error(JSON.stringify(errInfo));
 }

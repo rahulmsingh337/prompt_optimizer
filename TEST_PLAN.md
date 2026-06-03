@@ -1,4 +1,4 @@
-# NEXA Prompt Optimizer — Comprehensive Test Plan
+# Prompify — Comprehensive Test Plan
 
 **Version:** 2.0  
 **Date:** May 2026  
@@ -32,7 +32,7 @@
 
 | Environment | URL | Purpose |
 |---|---|---|
-| Production | prompt-optimizer-rouge-one.vercel.app | UAT + smoke tests |
+| Production | prompify.vercel.app | UAT + smoke tests |
 | Local | localhost:3000 | Unit + integration tests |
 | CI/CD | GitHub Actions | Automated regression on every push |
 
@@ -71,7 +71,7 @@
 **Priority:** P0  
 **Estimated time:** 2 min  
 **Steps:**
-1. Navigate to https://prompt-optimizer-rouge-one.vercel.app
+1. Navigate to https://prompify.vercel.app
 2. Click "Sign in with Google Account"
 3. Select a valid Google account
 4. Observe redirect back to app
@@ -775,7 +775,7 @@ POST /api/optimize
 
 ### K-003 · HTTPS Enforced
 **Priority:** P0  
-**Steps:** Try `http://prompt-optimizer-rouge-one.vercel.app`  
+**Steps:** Try `http://prompify.vercel.app`  
 **Expected:** Redirects to HTTPS  
 **Pass:** 301 redirect to HTTPS
 

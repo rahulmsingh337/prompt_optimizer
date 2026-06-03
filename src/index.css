@@ -32,7 +32,7 @@ body {
   background: #334155;
 }
 
-/* Override Prism tomorrow styles to perfectly integrate with NEXA display cards */
+/* Override Prism tomorrow styles to perfectly integrate with Prompify display cards */
 pre[class*="language-"],
 code[class*="language-"] {
   background: transparent !important;

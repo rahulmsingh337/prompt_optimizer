@@ -2,7 +2,7 @@ import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.nexa.promptagent',
-  appName: 'NEXA Prompt Agent',
+  appName: 'Prompify',
   webDir: 'dist',
   // Point to your live Vercel URL so the app loads remotely
   // Replace with your actual Vercel domain after deploying

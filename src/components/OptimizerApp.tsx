@@ -905,7 +905,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-display font-bold text-base text-white tracking-tight">NEXA Workspace</span>
+              <span className="font-display font-bold text-base text-white tracking-tight">Prompify Workspace</span>
               <span className="text-[9px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded uppercase font-bold">LIVE AGENT</span>
             </div>
           </div>
@@ -917,7 +917,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
             type="button"
             onClick={() => setShowWelcome(true)}
             className="px-2.5 py-1 text-xs font-mono font-medium rounded-lg border border-sky-500/20 text-sky-400 bg-slate-950 hover:bg-sky-500/10 transition-colors cursor-pointer select-none shrink-0"
-            title="Open About NEXA system handbook"
+            title="Open About Prompify system handbook"
           >
             About Us
           </button>
@@ -926,7 +926,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
           {tokenStatus && (
             <div 
               className="hidden sm:flex items-center gap-2 bg-slate-950 p-1.5 px-3 rounded-xl border border-slate-900 cursor-pointer select-none relative group"
-              title="NEXA Daily AI Token Limit"
+              title="Prompify Daily AI Token Limit"
             >
               <div className="flex flex-col text-right">
                 <span className="text-[10px] font-mono font-semibold text-slate-300">
@@ -954,7 +954,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
               <div className="opacity-0 group-hover:opacity-100 pointer-events-none absolute right-2 top-11 p-3 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl z-50 w-64 space-y-2 transition-all duration-300 text-left">
                 <div className="text-xs font-bold text-slate-200">Daily Token Allocation Status</div>
                 <p className="text-[10px] text-slate-400 leading-relaxed uppercase font-sans normal-case">
-                  Each NEXA member has a daily traffic allotment of 500,000 tokens (approx. 2 million characters of input and output) to prevent abuse.
+                  Each Prompify member has a daily traffic allotment of 500,000 tokens (approx. 2 million characters of input and output) to prevent abuse.
                 </p>
                 {!tokenStatus.isOwner && (
                   <div className="space-y-1">
@@ -1049,7 +1049,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                 ))}
               </div>
               <p className="text-[10px] text-slate-500 mt-1.5 leading-normal">
-                <strong>Auto-detect:</strong> NEXA evaluates characters and topics to toggle BASIC or custom questions.
+                <strong>Auto-detect:</strong> Prompify evaluates characters and topics to toggle BASIC or custom questions.
               </p>
             </div>
 
@@ -1129,7 +1129,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                 </button>
               </div>
               <p className="text-[9px] text-slate-500 mt-1.5 leading-normal">
-                💡 <strong>Try this:</strong> Click <strong>"Marketing Email"</strong>, keep style as <strong>"BASIC"</strong> or <strong>"DETAIL"</strong>, and click analyze. NEXA uses custom conversion formulas (like AIDA) and identifies implicit goals and anti-spam constraints automatically!
+                💡 <strong>Try this:</strong> Click <strong>"Marketing Email"</strong>, keep style as <strong>"BASIC"</strong> or <strong>"DETAIL"</strong>, and click analyze. Prompify uses custom conversion formulas (like AIDA) and identifies implicit goals and anti-spam constraints automatically!
               </p>
             </div>
 
@@ -1562,7 +1562,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
               </div>
               <p className="font-mono text-xs text-sky-400 font-bold">DECONSTRUCTING USER INPUT INTENT...</p>
               <p className="text-xs text-slate-400 max-w-sm mt-2 leading-relaxed font-sans">
-                NEXA is evaluating your domain parameters, cataloging potential context omissions, and mapping targeted structural schemas inside Gemini.
+                Prompify is evaluating your domain parameters, cataloging potential context omissions, and mapping targeted structural schemas inside Gemini.
               </p>
             </div>
           ) : response?.clarifyingQuestions ? (
@@ -1581,7 +1581,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                 </div>
 
                 <div className="p-4 rounded-xl bg-amber-500/5 border border-amber-500/10 text-xs text-slate-350 leading-relaxed mb-6">
-                  💡 NEXA deconstructed your rough engineering spec and flagged critical parameter openings. To complete optimization, answer the context queries below:
+                  💡 Prompify deconstructed your rough engineering spec and flagged critical parameter openings. To complete optimization, answer the context queries below:
                 </div>
 
                 <div className="space-y-5">
@@ -1637,7 +1637,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                 <div className="flex items-center gap-2 text-sky-400">
                   <CheckCircle2 className="w-5 h-5 text-sky-400" />
                   <div>
-                    <span className="text-xs font-mono uppercase tracking-widest font-extrabold block">NEXA Compilation Successful</span>
+                    <span className="text-xs font-mono uppercase tracking-widest font-extrabold block">Prompify Compilation Successful</span>
                   </div>
                 </div>
 
@@ -1864,7 +1864,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/40 p-3.5 rounded-xl border border-slate-900/60">
                       <div className="text-left font-sans">
                         <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                          <Eye className="w-3.5 h-3.5 text-sky-500" /> NEXA Impact Analyzer
+                          <Eye className="w-3.5 h-3.5 text-sky-500" /> Prompify Impact Analyzer
                         </span>
                         <p className="text-[11px] text-slate-400/80 leading-normal mt-0.5">
                           Our Develop stage expands, specifies constraints, and enforces optimal prompt instructions. Toggle impact lines to highlight optimized sectors.
@@ -1937,7 +1937,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
 
                     {/* Diff Expansion Metrics Banner */}
                     <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-900/80 text-[10px] text-slate-500 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 font-mono">
-                      <span className="uppercase tracking-wider font-bold text-slate-400">🔥 NEXA Expansion Intelligence:</span>
+                      <span className="uppercase tracking-wider font-bold text-slate-400">🔥 Prompify Expansion Intelligence:</span>
                       <div className="flex flex-wrap items-center gap-2 text-slate-350">
                         <span>Input: <strong className="text-red-400/80">{originalRequestForDiff ? originalRequestForDiff.trim().split(/\s+/).length : 0} words</strong></span>
                         <span className="text-slate-600">•</span>
@@ -1955,7 +1955,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                 <div className="flex items-center justify-between border-b border-slate-900/60 pb-2">
                   <div className="flex items-center gap-2">
                     <Cpu className="w-3.5 h-3.5 text-sky-450 animate-pulse" />
-                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-extrabold">NEXA Token Assessment & API Resource Forecast</span>
+                    <span className="text-[10px] font-mono text-slate-400 uppercase tracking-widest font-extrabold">Prompify Token Assessment & API Resource Forecast</span>
                   </div>
                   <span className="text-[9px] font-mono text-slate-500">Industry standard sub-unit costings</span>
                 </div>
@@ -2272,7 +2272,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
               <div className="pt-4 border-t border-slate-900 mt-2 space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest font-extrabold block">Rate NEXA Optimization Outcome</span>
+                    <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest font-extrabold block">Rate Prompify Optimization Outcome</span>
                     <span className="text-[10px] text-slate-400 leading-snug">Feedback is collected 100% anonymously. No prompt content or user details are preserved.</span>
                   </div>
                   
@@ -2311,7 +2311,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                     <textarea
                       value={feedbackComment}
                       onChange={(e) => setFeedbackComment(e.target.value)}
-                      placeholder="Optional: What could NEXA do better? e.g. target formatting, tone tweaks..."
+                      placeholder="Optional: What could Prompify do better? e.g. target formatting, tone tweaks..."
                       className="w-full h-16 bg-[#0c1222]/35 border border-slate-850/60 rounded-lg p-2.5 text-xs text-slate-200 placeholder-slate-600 focus:border-sky-500 focus:outline-none resize-none leading-relaxed backdrop-blur-sm"
                     />
                     <div className="flex items-center justify-between">
@@ -2337,7 +2337,7 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                 {feedbackSubmitted && (
                   <div className="p-3 bg-emerald-500/5 border border-emerald-500/10 text-emerald-400 rounded-lg text-xs font-semibold flex items-center gap-2">
                     <Check className="w-4 h-4 text-emerald-400" />
-                    Telemetry dispatched successfully. Thank you for contributing to NEXA's model routing accuracy!
+                    Telemetry dispatched successfully. Thank you for contributing to Prompify's model routing accuracy!
                   </div>
                 )}
               </div>
@@ -2403,14 +2403,14 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                 <Sparkles className="w-4 h-4 text-white" />
               </div>
               <div>
-                <span className="font-display font-bold text-base text-white">About NEXA Optimizer</span>
+                <span className="font-display font-bold text-base text-white">About Prompify</span>
                 <span className="block text-[9px] font-mono text-sky-400 font-bold tracking-wider uppercase">CORE SERVICES SPECIFICATION</span>
               </div>
             </div>
 
             {/* PRECISE TEXT AS STIPULATED BY SPECIFICATIONS */}
             <pre className="text-xs text-slate-300 font-sans whitespace-pre-wrap leading-relaxed select-text p-4 bg-slate-900/40 rounded-xl border border-slate-900">
-              {`Hello! I'm NEXA, your AI prompt optimizer. I transform vague requests into precise, effective prompts that deliver better results across any AI platform.
+              {`Hello! I'm Prompify, your AI prompt optimizer. I transform vague requests into precise, effective prompts that deliver better results across any AI platform.
 What I need to know:
 - Target AI: ChatGPT, Claude, Gemini, or Other
 - Prompt Style: DETAIL (clarifying questions first) or BASIC (quick optimization)
@@ -2446,7 +2446,7 @@ Just share your rough prompt and I'll handle the rest!`}
                   <Sparkles className="w-4 h-4 text-sky-400 animate-pulse" />
                 </div>
                 <div className="text-left">
-                  <h3 className="font-display font-bold text-sm text-white tracking-wide">NEXA Focus Engine Pro</h3>
+                  <h3 className="font-display font-bold text-sm text-white tracking-wide">Prompify Focus Engine Pro</h3>
                   <span className="block text-[9px] font-mono text-sky-400 tracking-wider uppercase font-semibold text-left">Active Distraction-Free Context Exclusivity</span>
                 </div>
               </div>
@@ -2592,7 +2592,7 @@ Just share your rough prompt and I'll handle the rest!`}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-950/40 p-4 rounded-xl border border-slate-900/60 font-sans">
                     <div className="text-left">
                       <span className="text-xs font-extrabold uppercase tracking-widest text-slate-350 flex items-center gap-1.5 font-sans">
-                        <Eye className="w-4 h-4 text-sky-450 animate-pulse" /> Fullscreen NEXA Impact Dashboard
+                        <Eye className="w-4 h-4 text-sky-450 animate-pulse" /> Fullscreen Prompify Impact Dashboard
                       </span>
                       <p className="text-xs text-slate-400 leading-normal mt-0.5 max-w-2xl font-sans text-left">
                         Our specialized Develop Optimizer analyzes input patterns to auto-flesh detailed descriptions, context parameters, and format guidelines. Toggle line-level highlighting to trace edits instantly.
@@ -2634,7 +2634,7 @@ Just share your rough prompt and I'll handle the rest!`}
                     {/* Right: Expanded/Optimized Output Block */}
                     <div className="flex flex-col rounded-xl bg-slate-950/40 border border-slate-850 overflow-hidden text-xs relative group/fullscreen-diff-pane">
                       <div className="bg-emerald-950/20 px-4 py-3 border-b border-emerald-950/40 flex items-center justify-between text-xs font-mono uppercase tracking-wider font-extrabold text-emerald-400">
-                        <span>2. NEXA Expanded Structure</span>
+                        <span>2. Prompify Expanded Structure</span>
                         <div className="flex items-center gap-2">
                           <span className="bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-555/15">{response.optimizedPrompt ? Math.ceil(response.optimizedPrompt.length / 4.1) : 0} Tokens</span>
                           <span>{response.optimizedPrompt ? response.optimizedPrompt.length : 0} Chars</span>
@@ -2666,7 +2666,7 @@ Just share your rough prompt and I'll handle the rest!`}
                   <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-900 text-xs text-slate-400 flex flex-col md:flex-row md:items-center md:justify-between gap-3 font-mono">
                     <span className="uppercase tracking-widest font-extrabold text-sky-455 flex items-center gap-1.5">
                       <Sparkles className="w-3.5 h-3.5 text-sky-400 animate-pulse" />
-                      NEXA Prompt Expansion Intelligence Quotient:
+                      Prompify Prompt Expansion Intelligence Quotient:
                     </span>
                     <div className="flex flex-wrap items-center gap-4 text-slate-300">
                       <span>Input Volume: <strong className="text-red-400">{originalRequestForDiff ? originalRequestForDiff.trim().split(/\s+/).length : 0} words</strong></span>
@@ -2691,7 +2691,7 @@ Just share your rough prompt and I'll handle the rest!`}
 
       {/* Workspace Footer Context */}
       <footer className="border-t border-slate-950 bg-slate-950 px-6 py-6 text-center text-slate-600 text-[10px] relative z-20">
-        NEXA Compiler 2026. Custom session active. All prompt generation pipelines operate in stateless processes. Zero log retention.
+        Prompify Compiler 2026. Custom session active. All prompt generation pipelines operate in stateless processes. Zero log retention.
       </footer>
     </div>
   );

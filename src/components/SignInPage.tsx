@@ -25,7 +25,7 @@ export default function SignInPage({ onGoogleSignIn, isLoading }: SignInPageProp
           ← Home
         </button>
         <span className="text-xs font-mono text-slate-500 hover:text-slate-400">
-          NEXA Gatekeeper
+          Prompify Gatekeeper
         </span>
       </header>
 
@@ -38,7 +38,7 @@ export default function SignInPage({ onGoogleSignIn, isLoading }: SignInPageProp
           </div>
 
           <h1 className="font-display text-2xl font-bold tracking-tight text-white mb-2">
-            Enter NEXA Workspace
+            Enter Prompify Workspace
           </h1>
           <p className="text-xs text-slate-400 mb-8 max-w-sm mx-auto">
             Review live optimizations, execute multi-step 4-D prompt engineering, and configure target parameters.

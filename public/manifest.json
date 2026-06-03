@@ -1,6 +1,6 @@
 {
-  "name": "NEXA Prompt Optimizer",
-  "short_name": "NEXA",
+  "name": "Prompify",
+  "short_name": "Prompify",
   "description": "Transform rough ideas into perfect AI prompts using the 4-D pipeline methodology.",
   "start_url": "/",
   "display": "standalone",
@@ -16,7 +16,7 @@
       "src": "/og-image.png",
       "sizes": "1200x630",
       "type": "image/png",
-      "label": "NEXA Prompt Optimizer dashboard"
+      "label": "Prompify dashboard"
     }
   ],
   "categories": ["productivity", "utilities"],

@@ -93,12 +93,12 @@ export default function SwimlaneWorkflow() {
       lane: "Public User",
       title: "Open app link",
       step: 8,
-      description: "Accessible via SSL secure browser endpoint connecting users to active NEXA Gatekeeper login window.",
+      description: "Accessible via SSL secure browser endpoint connecting users to active Prompify Gatekeeper login window.",
     },
     {
       id: "user-2",
       lane: "Public User",
-      title: "Use NEXA",
+      title: "Use Prompify",
       subtitle: "(BASIC/DETAIL)",
       step: 9,
       description: "Input vague request prompts, answer interactive context queries, and execute the 4-D optimization compiler.",
@@ -156,7 +156,7 @@ export default function SwimlaneWorkflow() {
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping shrink-0" />
             <h2 className="text-sm font-display font-bold text-slate-100 uppercase tracking-wider">
-              NEXA — Swimlane Workflow Architecture
+              Prompify — Swimlane Workflow Architecture
             </h2>
           </div>
           <p className="text-xs text-slate-400">

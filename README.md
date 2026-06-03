@@ -1,6 +1,6 @@
-# NEXA Prompt Agent 🚀
+# Prompify 🚀
 
-NEXA Prompt Agent is an end-to-end, production-ready full-stack web application designed to transform rough, ambiguous, or fragmented directives into highly structured, context-rich, copy-ready AI prompts.
+Prompify is an end-to-end, production-ready full-stack web application designed to transform rough, ambiguous, or fragmented directives into highly structured, context-rich, copy-ready AI prompts.
 
 ---
 
@@ -20,7 +20,7 @@ NEXA Prompt Agent is an end-to-end, production-ready full-stack web application 
 
 ## 🔍 What It Does
 
-NEXA bridges the gap between raw user thoughts and high-performance LLM prompt outputs. By analyzing target model constraints and applying state-of-the-art prompt design patterns, it ensures your prompts are optimized for platforms like **ChatGPT, Claude, Gemini, or other customizable LLMs**.
+Prompify bridges the gap between raw user thoughts and high-performance LLM prompt outputs. By analyzing target model constraints and applying state-of-the-art prompt design patterns, it ensures your prompts are optimized for platforms like **ChatGPT, Claude, Gemini, or other customizable LLMs**.
 
 - **Auto-Complexity Detection:** The app dynamically crawls user request length and key terminologies to intelligently route standard request formats to `BASIC` mode while automatically promoting dense technical requests to `DETAIL` mode.
 - **Two Modes of Optimization:**
@@ -32,7 +32,7 @@ NEXA bridges the gap between raw user thoughts and high-performance LLM prompt o
 
 ## 🧠 Methodology: The 4-D Pipeline
 
-Every prompt optimized by NEXA undergoes a strict logical progression:
+Every prompt optimized by Prompify undergoes a strict logical progression:
 1. **Deconstruct:** Breaking down raw user intent, isolating targeted outcomes and implicit parameters.
 2. **Diagnose:** Identifying phrasing weaknesses, flat variables, passive guidelines, or format ambiguities.
 3. **Develop:** Compiling state-of-the-art formatting frameworks, persona roles, delimitations, and contextual examples tailored to the selected Target AI requirements.
@@ -42,7 +42,7 @@ Every prompt optimized by NEXA undergoes a strict logical progression:
 
 ## 🎮 Product Shape & Interactive Read-Only Demo
 
-To provide a flawless visitor experience, NEXA divides the application routing into three responsive layers:
+To provide a flawless visitor experience, Prompify divides the application routing into three responsive layers:
 - **`'/'` Landing Page (Public):** Explains core features, diagrams the 4-D methodology, and showcases a **Read-Only Demo Workbench**. 
   - *No Live APIs called on Landing:* Visitors can play with two preset scenarios—one basic marketing campaign, and one complex database engineering pipeline. In the complex scenario, visitors can adjust answering parameters in real-time and click *"Submit Answers"* to see how the DETAIL layout generates code prompt formats.
 - **`'/sign-in'` Page (Public):** Offers a single click **"Sign in with GitHub"** redirect and a high-convenience **"Bypass Sandbox Login"** designed to instantly provision mock sessions in trial environments where OAuth secrets are not yet compiled.
@@ -114,11 +114,11 @@ The workspace will launch at **`http://localhost:3000`** binding immediately to 
 
 ## ☁ Vercel Deployment Steps
 
-Deploying NEXA to Vercel takes less than two minutes:
+Deploying Prompify to Vercel takes less than two minutes:
 
 1. **Push your code** to a GitHub repository.
 2. Go to your **Vercel Dashboard** and click **"Add New Project"**.
-3. Import your NEXA repository.
+3. Import your Prompify repository.
 4. Set the **Framework Preset** to `Other` or `Vite`, or retain defaults.
 5. In **Environment Variables**, add the values listed in the `.env` section above:
    - `GEMINI_API_KEY`

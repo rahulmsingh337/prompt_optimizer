@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { detectLanguage } from "../src/components/OptimizerApp";
 
-describe("NEXA Prompt Agent UAT Verification Suite", () => {
+describe("Prompify UAT Verification Suite", () => {
   
   // ==========================================
   // UAT-01: LIGHTWEIGHT SYNTAX HIGHLIGHTER DETECTION
@@ -15,7 +15,7 @@ describe("NEXA Prompt Agent UAT Verification Suite", () => {
 
     it("should identify structured JSON objects correctly", () => {
       const validJson = `{
-        "name": "NEXA",
+        "name": "Prompify",
         "version": "1.0.0",
         "description": "JSON check"
       }`;

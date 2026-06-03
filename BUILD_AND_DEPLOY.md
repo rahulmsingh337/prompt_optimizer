@@ -1,4 +1,4 @@
-# NEXA Prompt Agent — Deploy & APK Guide
+# Prompify — Deploy & APK Guide
 
 ---
 
