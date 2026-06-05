@@ -1,8 +1,18 @@
 User-agent: *
 Allow: /
-Allow: /sign-in
-
-# Block the authenticated app dashboard from indexing (nothing useful for crawlers there)
+Allow: /blog
+Allow: /landing
 Disallow: /app
+Disallow: /sign-in
+Disallow: /api/
 
-Sitemap: https://prompify.vercel.app/sitemap.xml
+# Allow major crawlers explicitly
+User-agent: Googlebot
+Allow: /
+Crawl-delay: 1
+
+User-agent: Bingbot
+Allow: /
+Crawl-delay: 2
+
+Sitemap: https://prompifytech.vercel.app/sitemap.xml
