@@ -438,11 +438,14 @@ export async function checkAndDeductTokens(
   const dbData = loadTokenDatabase();
   const today = new Date().toISOString().split("T")[0];
 
-  if (!dbData[cleanUserId]) {
-    dbData[cleanUserId] = { tokensUsed: 0, email: cleanEmail, lastActiveDate: today };
+  // Sanitize key to prevent prototype pollution (__proto__, constructor, etc.)
+  const safeUserId = `uid_${cleanUserId.replace(/[^a-zA-Z0-9_@.-]/g, "_")}`;
+
+  if (!Object.prototype.hasOwnProperty.call(dbData, safeUserId)) {
+    dbData[safeUserId] = { tokensUsed: 0, email: cleanEmail, lastActiveDate: today };
   }
 
-  const record = dbData[cleanUserId];
+  const record = dbData[safeUserId];
   if (record.lastActiveDate !== today) {
     record.tokensUsed = 0;
     record.lastActiveDate = today;
@@ -779,9 +782,26 @@ export function scanRoughRequestForRisks(roughRequest: any): { improvements: str
     }
 
     const digitalSequence = text.replace(/[^0-9]/g, "");
-    if (digitalSequence.length >= 13 && digitalSequence.length <= 19 && /(?:\d[ -]?){13,19}/.test(text)) {
-      improvements.push("DIAGNOSTIC (Security/Edge-case): Sensitive Data Exposure: Potential credit card or high-entropy transaction ID sequence detected.");
-      techniquesApplied.push("Payment Card Exposure Shield", "Anti-Data-Leakage Isolation Boundaries");
+    // Safe bounds check first (avoids running regex on arbitrary-length input)
+    if (digitalSequence.length >= 13 && digitalSequence.length <= 19) {
+      // Linear scan instead of backtracking regex — ReDoS safe
+      let hasCardPattern = false;
+      let consecutive = 0;
+      for (let ci = 0; ci < text.length && !hasCardPattern; ci++) {
+        const ch = text[ci];
+        if (ch >= "0" && ch <= "9") {
+          consecutive++;
+          if (consecutive >= 13) hasCardPattern = true;
+        } else if (ch === " " || ch === "-") {
+          // allow separators but don't reset count
+        } else {
+          consecutive = 0;
+        }
+      }
+      if (hasCardPattern) {
+        improvements.push("DIAGNOSTIC (Security/Edge-case): Sensitive Data Exposure: Potential credit card or high-entropy transaction ID sequence detected.");
+        techniquesApplied.push("Payment Card Exposure Shield", "Anti-Data-Leakage Isolation Boundaries");
+      }
     }
 
     // 4. More Complex User Intents (Workflows, stage-based sequences, multi-actor coordination)
