@@ -7,6 +7,91 @@ import Groq from "groq-sdk";
 
 dotenv.config();
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FIRESTORE TOKEN ENGINE — replaces flat daily_tokens.json
+// Uses firebase-admin with application default credentials (service account env)
+// Falls back gracefully to the old file-based approach if admin init fails
+// ─────────────────────────────────────────────────────────────────────────────
+let firestoreAdmin: any = null;
+let firestoreTokensCollection: any = null;
+
+async function initFirestoreAdmin() {
+  try {
+    // Dynamically import firebase-admin to avoid breaking if not installed
+    const admin = await import("firebase-admin");
+    if (!admin.default.apps.length) {
+      const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+      if (serviceAccountJson) {
+        const serviceAccount = JSON.parse(serviceAccountJson);
+        admin.default.initializeApp({
+          credential: admin.default.credential.cert(serviceAccount),
+        });
+      } else {
+        // Try application default credentials (works in GCP/Cloud Run)
+        admin.default.initializeApp();
+      }
+    }
+    firestoreAdmin = admin.default.firestore();
+    firestoreTokensCollection = firestoreAdmin.collection("token_limits");
+    console.info("[Prompify TOKEN ENGINE] Firestore admin initialized — token limits will persist.");
+  } catch (err: any) {
+    console.warn("[Prompify TOKEN ENGINE] firebase-admin not available, falling back to file-based tokens:", err?.message);
+  }
+}
+
+// Async Firestore token check/deduct — used inside route handlers
+async function checkAndDeductTokensFirestore(
+  userId: string,
+  email: string,
+  estimateToAdd: number
+): Promise<{ allowed: boolean; remaining: number; tokensUsed: number; reachedLimit: boolean } | null> {
+  if (!firestoreTokensCollection) return null;
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const docRef = firestoreTokensCollection.doc(userId);
+    const result = await firestoreAdmin.runTransaction(async (tx: any) => {
+      const snap = await tx.get(docRef);
+      const data = snap.exists ? snap.data() : { tokensUsed: 0, email, lastActiveDate: today };
+      // Daily reset
+      if (data.lastActiveDate !== today) {
+        data.tokensUsed = 0;
+        data.lastActiveDate = today;
+      }
+      if (data.tokensUsed >= DAILY_LIMIT) {
+        return { allowed: false, remaining: 0, tokensUsed: data.tokensUsed, reachedLimit: true };
+      }
+      data.tokensUsed += estimateToAdd;
+      data.email = email;
+      tx.set(docRef, data);
+      const remaining = Math.max(0, DAILY_LIMIT - data.tokensUsed);
+      return { allowed: true, remaining, tokensUsed: data.tokensUsed, reachedLimit: data.tokensUsed >= DAILY_LIMIT };
+    });
+    return result;
+  } catch (err: any) {
+    console.warn("[Prompify TOKEN ENGINE] Firestore token transaction failed, falling back to file:", err?.message);
+    return null;
+  }
+}
+
+async function getTokenStatusFirestore(userId: string, email: string): Promise<{
+  tokensUsed: number; remaining: number; reachedLimit: boolean;
+} | null> {
+  if (!firestoreTokensCollection) return null;
+  try {
+    const today = new Date().toISOString().split("T")[0];
+    const snap = await firestoreTokensCollection.doc(userId).get();
+    if (!snap.exists) return { tokensUsed: 0, remaining: DAILY_LIMIT, reachedLimit: false };
+    const data = snap.data();
+    const tokensUsed = data.lastActiveDate === today ? data.tokensUsed : 0;
+    return { tokensUsed, remaining: Math.max(0, DAILY_LIMIT - tokensUsed), reachedLimit: tokensUsed >= DAILY_LIMIT };
+  } catch {
+    return null;
+  }
+}
+
+// Kick off admin init without blocking server startup
+initFirestoreAdmin().catch(() => {});
+
 const app = express();
 const PORT = 3000;
 
@@ -330,45 +415,43 @@ export function saveTokenDatabase(dbData: TokenDatabase): void {
 /**
  * Validates, resets on date shift, and attempts token deduction for a specific user ID.
  * Bypasses checks if email matches OWNER_EMAIL.
+ * Tries Firestore first (persistent across serverless cold starts), falls back to file.
  */
-export function checkAndDeductTokens(
+export async function checkAndDeductTokens(
   userId: string | undefined, 
   email: string | undefined, 
   estimateToAdd: number
-): { allowed: boolean; remaining: number; tokensUsed: number; reachedLimit: boolean } {
+): Promise<{ allowed: boolean; remaining: number; tokensUsed: number; reachedLimit: boolean }> {
   const cleanUserId = userId ? String(userId) : "anonymous_sandbox_guest";
   const cleanEmail = (email || "").toLowerCase().trim();
 
-  // OWNER EXEMPTION
-  if (cleanEmail === OWNER_EMAIL || cleanEmail.endsWith("@google.com")) {
+  // OWNER EXEMPTION — only exact OWNER_EMAIL match, no domain wildcards
+  if (OWNER_EMAIL && cleanEmail === OWNER_EMAIL) {
     return { allowed: true, remaining: 99999999, tokensUsed: 0, reachedLimit: false };
   }
 
+  // Try Firestore first (persistent, works on Vercel serverless)
+  const fsResult = await checkAndDeductTokensFirestore(cleanUserId, cleanEmail, estimateToAdd);
+  if (fsResult !== null) return fsResult;
+
+  // Fallback: file-based (local dev or if admin not configured)
   const dbData = loadTokenDatabase();
-  const today = new Date().toISOString().split("T")[0]; // UTC Date YYYY-MM-DD
+  const today = new Date().toISOString().split("T")[0];
 
   if (!dbData[cleanUserId]) {
-    dbData[cleanUserId] = {
-      tokensUsed: 0,
-      email: cleanEmail,
-      lastActiveDate: today
-    };
+    dbData[cleanUserId] = { tokensUsed: 0, email: cleanEmail, lastActiveDate: today };
   }
 
   const record = dbData[cleanUserId];
-
-  // Daily Reset check: if date has rolled over, reset tokensUsed to 0
   if (record.lastActiveDate !== today) {
     record.tokensUsed = 0;
     record.lastActiveDate = today;
   }
 
-  // Pre-check limit
   if (record.tokensUsed >= DAILY_LIMIT) {
     return { allowed: false, remaining: 0, tokensUsed: record.tokensUsed, reachedLimit: true };
   }
 
-  // Execute allocation
   record.tokensUsed += estimateToAdd;
   saveTokenDatabase(dbData);
 
@@ -442,12 +525,12 @@ async function callGeminiWithRetry(
 }
 
 
-app.get("/api/token-status", (req: any, res: any) => {
+app.get("/api/token-status", async (req: any, res: any) => {
   const { userId, email } = req.query;
   const cleanUserId = userId ? String(userId) : "anonymous_sandbox_guest";
   const cleanEmail = (email || "").toLowerCase().trim();
 
-  if (cleanEmail === OWNER_EMAIL || cleanEmail.endsWith("@google.com")) {
+  if (OWNER_EMAIL && cleanEmail === OWNER_EMAIL) {
     return res.json({
       isOwner: true,
       tokensUsed: 0,
@@ -457,15 +540,16 @@ app.get("/api/token-status", (req: any, res: any) => {
     });
   }
 
+  // Try Firestore first
+  const fsStatus = await getTokenStatusFirestore(cleanUserId, cleanEmail);
+  if (fsStatus !== null) {
+    return res.json({ isOwner: false, dailyLimit: DAILY_LIMIT, ...fsStatus });
+  }
+
+  // Fallback to file
   const dbData = loadTokenDatabase();
-  const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-
-  const record = dbData[cleanUserId] || {
-    tokensUsed: 0,
-    email: cleanEmail,
-    lastActiveDate: today
-  };
-
+  const today = new Date().toISOString().split("T")[0];
+  const record = dbData[cleanUserId] || { tokensUsed: 0, email: cleanEmail, lastActiveDate: today };
   const isResetNeeded = record.lastActiveDate !== today;
   const currentUsed = isResetNeeded ? 0 : record.tokensUsed;
 
@@ -874,6 +958,129 @@ export function logServerError(
   console.error(`[Prompify ERROR] ${method} ${endpoint}: ${entry.error}`);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// FREE TRIAL ENGINE
+// Allows up to FREE_TRIAL_LIMIT optimizations without authentication.
+// Tracked by a session token (passed from client, generated on first use).
+// Stored in Firestore under free_trials/{sessionToken} — ephemeral 24h docs.
+// Falls back to in-memory map if Firestore admin is unavailable.
+// ─────────────────────────────────────────────────────────────────────────────
+const FREE_TRIAL_LIMIT = 3;
+const freeTrialMemory = new Map<string, { count: number; ts: number }>();
+const FREE_TRIAL_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+async function getFreeTrialCount(sessionToken: string): Promise<number> {
+  // Firestore path: free_trials/{sessionToken}
+  if (firestoreAdmin) {
+    try {
+      const snap = await firestoreAdmin.collection("free_trials").doc(sessionToken).get();
+      if (!snap.exists) return 0;
+      const data = snap.data();
+      const age = Date.now() - (data.createdAt || 0);
+      if (age > FREE_TRIAL_TTL_MS) return 0; // expired
+      return data.count || 0;
+    } catch { /* fall through */ }
+  }
+  const entry = freeTrialMemory.get(sessionToken);
+  if (!entry) return 0;
+  if (Date.now() - entry.ts > FREE_TRIAL_TTL_MS) { freeTrialMemory.delete(sessionToken); return 0; }
+  return entry.count;
+}
+
+async function incrementFreeTrialCount(sessionToken: string): Promise<number> {
+  if (firestoreAdmin) {
+    try {
+      const ref = firestoreAdmin.collection("free_trials").doc(sessionToken);
+      const snap = await ref.get();
+      const count = snap.exists ? (snap.data().count || 0) + 1 : 1;
+      await ref.set({ count, createdAt: snap.exists ? snap.data().createdAt : Date.now() });
+      return count;
+    } catch { /* fall through */ }
+  }
+  const existing = freeTrialMemory.get(sessionToken);
+  const count = (existing?.count || 0) + 1;
+  freeTrialMemory.set(sessionToken, { count, ts: existing?.ts || Date.now() });
+  return count;
+}
+
+// GET /api/trial-status — returns remaining free uses for a session token
+app.get("/api/trial-status", async (req: any, res: any) => {
+  const sessionToken = String(req.query.sessionToken || "");
+  if (!sessionToken || sessionToken.length < 8) {
+    return res.json({ count: 0, remaining: FREE_TRIAL_LIMIT, limit: FREE_TRIAL_LIMIT });
+  }
+  const count = await getFreeTrialCount(sessionToken);
+  res.json({ count, remaining: Math.max(0, FREE_TRIAL_LIMIT - count), limit: FREE_TRIAL_LIMIT });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SHAREABLE OUTPUT URLS
+// POST /api/share   — saves an optimized prompt, returns a share ID
+// GET  /api/share/:id — retrieves a shared prompt (no auth required)
+// Stored in Firestore shared_prompts/{id}. TTL 30 days.
+// ─────────────────────────────────────────────────────────────────────────────
+const SHARE_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const shareMemory = new Map<string, any>();
+
+function generateShareId(): string {
+  return Math.random().toString(36).slice(2, 9) + Math.random().toString(36).slice(2, 9);
+}
+
+app.post("/api/share", async (req: any, res: any) => {
+  const { optimizedPrompt, roughRequest, domain, targetAI, modeUsed, improvements, techniquesApplied, proTip } = req.body;
+  if (!optimizedPrompt?.trim()) {
+    return res.status(400).json({ error: "missing_content", message: "optimizedPrompt is required." });
+  }
+  const shareId = generateShareId();
+  const payload = {
+    shareId,
+    optimizedPrompt,
+    roughRequest: roughRequest || "",
+    domain: domain || "General",
+    targetAI: targetAI || "ChatGPT",
+    modeUsed: modeUsed || "BASIC",
+    improvements: improvements || [],
+    techniquesApplied: techniquesApplied || [],
+    proTip: proTip || null,
+    createdAt: Date.now(),
+  };
+
+  if (firestoreAdmin) {
+    try {
+      await firestoreAdmin.collection("shared_prompts").doc(shareId).set(payload);
+      return res.json({ shareId, url: `/p/${shareId}` });
+    } catch (err: any) {
+      console.warn("[Prompify SHARE] Firestore save failed, using memory:", err?.message);
+    }
+  }
+  shareMemory.set(shareId, payload);
+  res.json({ shareId, url: `/p/${shareId}` });
+});
+
+app.get("/api/share/:shareId", async (req: any, res: any) => {
+  const { shareId } = req.params;
+  if (!shareId || shareId.length < 8) return res.status(400).json({ error: "invalid_id" });
+
+  if (firestoreAdmin) {
+    try {
+      const snap = await firestoreAdmin.collection("shared_prompts").doc(shareId).get();
+      if (snap.exists) {
+        const data = snap.data();
+        if (Date.now() - data.createdAt > SHARE_TTL_MS) {
+          return res.status(410).json({ error: "expired", message: "This shared prompt has expired (30 days)." });
+        }
+        return res.json(data);
+      }
+    } catch (err: any) {
+      console.warn("[Prompify SHARE] Firestore get failed:", err?.message);
+    }
+  }
+  const mem = shareMemory.get(shareId);
+  if (!mem) return res.status(404).json({ error: "not_found", message: "Shared prompt not found." });
+  if (Date.now() - mem.createdAt > SHARE_TTL_MS) return res.status(410).json({ error: "expired" });
+  res.json(mem);
+});
+
 // Health check endpoint
 app.get("/api/health", async (req: any, res: any) => {
   // Protect health endpoint with a secret token
@@ -966,7 +1173,7 @@ app.get("/api/queue-status", (_req: any, res: any) => {
 
 app.post("/api/optimize", async (req: any, res: any) => {
   // ── Cache lookup — serve instantly if seen before ──────────────────────────
-  const { targetAI, modePreference, domain, roughRequest, tone, userId, email } = req.body;
+  const { targetAI, modePreference, domain, roughRequest, tone, userId, email, sessionToken } = req.body;
   const modeOverride = modePreference || "AUTO";
   const cacheKey = getCacheKey(roughRequest || "", domain || "General", targetAI || "ChatGPT", modeOverride);
   const cached = getCached(cacheKey);
@@ -979,19 +1186,47 @@ app.post("/api/optimize", async (req: any, res: any) => {
     return res.status(400).json({ error: "missing_content", message: "Rough request textarea cannot be empty." });
   }
 
-  // Pre-check token limits
-  const cleanUserId = userId ? String(userId) : "anonymous_sandbox_guest";
+  // ── Auth gate: authenticated users use token limits, guests use free trial ─
+  const cleanUserId = userId ? String(userId) : null;
   const cleanEmail = (email || "").toLowerCase().trim();
+  const isAuthenticated = !!cleanUserId && cleanUserId !== "anonymous_sandbox_guest";
 
-  if (cleanEmail !== OWNER_EMAIL && !cleanEmail.endsWith("@google.com")) {
-    const dbData = loadTokenDatabase();
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-    const record = dbData[cleanUserId];
-    if (record && record.lastActiveDate === today && record.tokensUsed >= DAILY_LIMIT) {
-      return res.status(403).json({
-        error: "token_limit_exceeded",
-        message: "You have spent your daily allocation of 500,000 tokens. Balance resets tomorrow!"
+  if (!isAuthenticated) {
+    // Unauthenticated: enforce free trial limit
+    const trialToken = String(sessionToken || "");
+    if (!trialToken || trialToken.length < 8) {
+      return res.status(401).json({
+        error: "trial_token_missing",
+        message: "A session token is required for free trial use.",
+        requiresToken: true,
       });
+    }
+    const trialCount = await getFreeTrialCount(trialToken);
+    if (trialCount >= FREE_TRIAL_LIMIT) {
+      return res.status(403).json({
+        error: "free_trial_exhausted",
+        message: `You have used your ${FREE_TRIAL_LIMIT} free optimizations. Sign in to continue.`,
+        trialsUsed: trialCount,
+        trialLimit: FREE_TRIAL_LIMIT,
+      });
+    }
+    // Will increment after successful optimization (below)
+  } else {
+    // Authenticated: pre-check daily token limit
+    if (OWNER_EMAIL && cleanEmail !== OWNER_EMAIL) {
+      const fsStatus = await getTokenStatusFirestore(cleanUserId!, cleanEmail);
+      const tokensUsed = fsStatus ? fsStatus.tokensUsed : (() => {
+        const dbData = loadTokenDatabase();
+        const today = new Date().toISOString().split("T")[0];
+        const record = dbData[cleanUserId!];
+        return record && record.lastActiveDate === today ? record.tokensUsed : 0;
+      })();
+      if (tokensUsed >= DAILY_LIMIT) {
+        return res.status(403).json({
+          error: "token_limit_exceeded",
+          message: "You have spent your daily allocation of 500,000 tokens. Balance resets tomorrow!"
+        });
+      }
     }
   }
 
@@ -1070,19 +1305,28 @@ If Mode is DETAIL, evaluate if we can ask 2-3 custom clarifying questions with s
         console.warn("[Prompify ROUTE OPTIMIZATION] Scan injection failed defensively:", scanError);
       }
 
-      // Calculate token estimation and deduct
+      // Calculate token estimation and deduct (authenticated only; free trials tracked separately)
       const textForEstimate = typeof textOutput === "string" ? textOutput : JSON.stringify(parsedData);
       const inputEst = Math.ceil((roughRequest || "").length / 4.1);
       const outputEst = Math.ceil(textForEstimate.length / 4.1);
       const totalEst = inputEst + outputEst;
 
-      const tokenResult = checkAndDeductTokens(userId, email, totalEst);
-      parsedData.tokenResult = {
-        charged: totalEst,
-        tokensUsed: tokenResult.tokensUsed,
-        remaining: tokenResult.remaining,
-        reachedLimit: tokenResult.reachedLimit
-      };
+      if (isAuthenticated) {
+        const tokenResult = await checkAndDeductTokens(userId, email, totalEst);
+        parsedData.tokenResult = {
+          charged: totalEst,
+          tokensUsed: tokenResult.tokensUsed,
+          remaining: tokenResult.remaining,
+          reachedLimit: tokenResult.reachedLimit
+        };
+      } else {
+        const newCount = await incrementFreeTrialCount(String(sessionToken || ""));
+        parsedData.trialResult = {
+          trialsUsed: newCount,
+          trialsRemaining: Math.max(0, FREE_TRIAL_LIMIT - newCount),
+          trialLimit: FREE_TRIAL_LIMIT,
+        };
+      }
 
       res.json(parsedData);
     } catch (parseError: any) {
@@ -1141,7 +1385,7 @@ app.post("/api/optimize/answers", async (req: any, res: any) => {
   const cleanUserId = userId ? String(userId) : "anonymous_sandbox_guest";
   const cleanEmail = (email || "").toLowerCase().trim();
 
-  if (cleanEmail !== OWNER_EMAIL && !cleanEmail.endsWith("@google.com")) {
+  if (cleanEmail !== OWNER_EMAIL) {
     const dbData = loadTokenDatabase();
     const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
     const record = dbData[cleanUserId];
@@ -1229,7 +1473,7 @@ Please synthesize the absolute ultimate tailored optimized prompt incorporating 
       const outputEst = Math.ceil(textForEstimate.length / 4.1);
       const totalEst = inputEst + outputEst;
 
-      const tokenResult = checkAndDeductTokens(userId, email, totalEst);
+      const tokenResult = await checkAndDeductTokens(userId, email, totalEst);
       parsedData.tokenResult = {
         charged: totalEst,
         tokensUsed: tokenResult.tokensUsed,
@@ -1293,7 +1537,7 @@ app.post("/api/translate", async (req: any, res: any) => {
   const cleanUserId = userId ? String(userId) : "anonymous_sandbox_guest";
   const cleanEmail = (email || "").toLowerCase().trim();
 
-  if (cleanEmail !== OWNER_EMAIL && !cleanEmail.endsWith("@google.com")) {
+  if (cleanEmail !== OWNER_EMAIL) {
     const dbData = loadTokenDatabase();
     const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
     const record = dbData[cleanUserId];
@@ -1336,7 +1580,7 @@ Your task is to:
     const outputEst = Math.ceil(textForEstimate.length / 4.1);
     const totalEst = inputEst + outputEst;
 
-    const tokenResult = checkAndDeductTokens(userId, email, totalEst);
+    const tokenResult = await checkAndDeductTokens(userId, email, totalEst);
     parsedData.tokenResult = {
       charged: totalEst,
       tokensUsed: tokenResult.tokensUsed,
