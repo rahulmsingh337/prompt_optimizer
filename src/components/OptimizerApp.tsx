@@ -66,6 +66,7 @@ import {
   onSnapshot 
 } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../firebase";
+import ShareButton from "./ShareButton";
 
 interface DiffChunk {
   type: "added" | "removed" | "equal";
@@ -1746,6 +1747,12 @@ export default function OptimizerApp({ user, onSignOut }: OptimizerAppProps) {
                           </>
                         )}
                       </button>
+                      {response && (
+                        <ShareButton
+                          result={response}
+                          queryState={{ targetAI, domain, roughRequest, modePreference }}
+                        />
+                      )}
                     </div>
                     <div className="relative group/prompt overflow-hidden w-full min-w-0">
                       {enableHighlighting ? (
@@ -2547,6 +2554,12 @@ Just share your rough prompt and I'll handle the rest!`}
                         </>
                       )}
                     </button>
+                    {response && (
+                      <ShareButton
+                        result={response}
+                        queryState={{ targetAI, domain, roughRequest, modePreference }}
+                      />
+                    )}
                   </div>
 
                   <div className="flex-1 relative group/fullscreen-pre min-h-[500px]">
