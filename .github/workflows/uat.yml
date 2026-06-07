@@ -54,6 +54,7 @@ jobs:
           NODE_ENV: test
           TEST_URL: https://prompifytech.vercel.app
           HEALTH_SECRET: ${{ secrets.HEALTH_SECRET }}
+          VERCEL_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
       - name: Upload test results
         if: always()
         uses: actions/upload-artifact@v4
@@ -72,6 +73,7 @@ jobs:
         run: |
           RESPONSE=$(curl -sf --max-time 15 \
             -H "x-health-token: ${{ secrets.HEALTH_SECRET }}" \
+            -H "x-vercel-protection-bypass: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}" \
             "https://prompifytech.vercel.app/api/health" || echo "FAILED")
           echo "Response: $RESPONSE"
           if echo "$RESPONSE" | grep -q '"status":"healthy"\|"status":"degraded"'; then
@@ -84,6 +86,7 @@ jobs:
       - name: Check frontend loads
         run: |
           STATUS=$(curl -so /dev/null -w "%{http_code}" --max-time 15 \
+            -H "x-vercel-protection-bypass: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}" \
             "https://prompifytech.vercel.app/")
           if [ "$STATUS" = "200" ]; then
             echo "✅ Frontend OK ($STATUS)"
@@ -95,6 +98,7 @@ jobs:
       - name: Check sitemap accessible
         run: |
           STATUS=$(curl -so /dev/null -w "%{http_code}" --max-time 15 \
+            -H "x-vercel-protection-bypass: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}" \
             "https://prompifytech.vercel.app/sitemap.xml")
           if [ "$STATUS" = "200" ]; then
             echo "✅ Sitemap OK"
