@@ -10,14 +10,18 @@ const BASE_URL = process.env.TEST_URL || "https://prompifytech.vercel.app";
 const HEALTH_TOKEN = process.env.HEALTH_SECRET || "nexa-health-2026";
 
 // ── HTTP helpers ──────────────────────────────────────────────────────────────
+const BYPASS_HEADER = process.env.VERCEL_BYPASS_SECRET
+  ? { "x-vercel-protection-bypass": process.env.VERCEL_BYPASS_SECRET }
+  : {};
+
 async function get(path: string, headers: Record<string, string> = {}) {
-  return fetch(`${BASE_URL}${path}`, { headers });
+  return fetch(`${BASE_URL}${path}`, { headers: { ...BYPASS_HEADER, ...headers } });
 }
 
 async function post(path: string, body: any, headers: Record<string, string> = {}) {
   return fetch(`${BASE_URL}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", ...headers },
+    headers: { "Content-Type": "application/json", ...BYPASS_HEADER, ...headers },
     body: JSON.stringify(body),
   });
 }
