@@ -159,33 +159,36 @@ describe("Prompify FULL UAT — End-to-End Test Suite", () => {
   // TC-04 │ Token Engine
   // ══════════════════════════════════════════════════════════════════════
   describe("TC-04 │ Token Engine", () => {
-    it("owner email bypasses limits", () => {
-      const r = checkAndDeductTokens("uid", OWNER_EMAIL, 999999);
+    it("owner email bypasses limits", async () => {
+      const r = await checkAndDeductTokens("uid", OWNER_EMAIL, 999999);
       expect(r.allowed).toBe(true);
       expect(r.remaining).toBe(99999999);
     });
-    it("google.com email bypasses limits", () => {
-      const r = checkAndDeductTokens("uid", "eng@google.com", 999999);
+    it("non-owner google.com email does NOT bypass limits (security fix)", async () => {
+      // @google.com blanket bypass was removed — only exact OWNER_EMAIL gets unlimited
+      const r = await checkAndDeductTokens("uid_google_" + Date.now(), "eng@google.com", 100);
+      // Should be allowed (has tokens remaining) but NOT get 99999999 remaining
       expect(r.allowed).toBe(true);
+      expect(r.remaining).toBeLessThan(99999999);
     });
-    it("new users start with full allocation", () => {
-      const r = checkAndDeductTokens("new_" + Date.now(), "new@test.com", 100);
+    it("new users start with full allocation", async () => {
+      const r = await checkAndDeductTokens("new_" + Date.now(), "new@test.com", 100);
       expect(r.allowed).toBe(true);
       expect(r.tokensUsed).toBe(100);
       expect(r.remaining).toBe(DAILY_LIMIT - 100);
     });
-    it("tracks cumulative deductions correctly", () => {
+    it("tracks cumulative deductions correctly", async () => {
       const uid = "cum_" + Date.now();
-      checkAndDeductTokens(uid, "t@test.com", 1000);
-      checkAndDeductTokens(uid, "t@test.com", 2000);
-      const r = checkAndDeductTokens(uid, "t@test.com", 500);
+      await checkAndDeductTokens(uid, "t@test.com", 1000);
+      await checkAndDeductTokens(uid, "t@test.com", 2000);
+      const r = await checkAndDeductTokens(uid, "t@test.com", 500);
       expect(r.tokensUsed).toBe(3500);
     });
     it("DAILY_LIMIT is 500,000", () => {
       expect(DAILY_LIMIT).toBe(500000);
     });
-    it("handles undefined userId gracefully (anonymous guest)", () => {
-      const r = checkAndDeductTokens(undefined, "anon@test.com", 50);
+    it("handles undefined userId gracefully (anonymous guest)", async () => {
+      const r = await checkAndDeductTokens(undefined, "anon@test.com", 50);
       expect(r.allowed).toBe(true);
     });
   });
