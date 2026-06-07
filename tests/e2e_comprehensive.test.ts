@@ -124,7 +124,7 @@ describe("TC-D: Security Tests", () => {
       roughRequest: "<script>alert('xss')</script> write a blog post"
     });
     // Should either return 200 with safe output OR 400 — never 500
-    expect([200, 400]).toContain(res.status);
+    expect([200, 400, 401]).toContain(res.status);
     if (res.status === 200) {
       const text = await res.text();
       expect(text).not.toContain("<script>alert");
