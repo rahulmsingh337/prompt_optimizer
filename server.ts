@@ -90,7 +90,10 @@ async function getTokenStatusFirestore(userId: string, email: string): Promise<{
 }
 
 // Kick off admin init without blocking server startup
-initFirestoreAdmin().catch(() => {});
+// Skip in test environments — Firestore not available in CI without credentials
+if (process.env.NODE_ENV !== 'test' && !process.env.VITEST) {
+  initFirestoreAdmin().catch(() => {});
+}
 
 const app = express();
 const PORT = 3000;
