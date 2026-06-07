@@ -6,7 +6,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 // Cache/Queue, UI, Platform Buttons, SEO, Error Handling, Non-Functional
 // ─────────────────────────────────────────────────────────────────────────────
 
-const BASE_URL = process.env.TEST_URL || "https://prompify.vercel.app";
+const BASE_URL = process.env.TEST_URL || "https://prompifytech.vercel.app";
 const HEALTH_TOKEN = process.env.HEALTH_SECRET || "nexa-health-2026";
 
 // ── HTTP helpers ──────────────────────────────────────────────────────────────
