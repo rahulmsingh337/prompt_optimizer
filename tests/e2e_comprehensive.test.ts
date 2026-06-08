@@ -451,24 +451,23 @@ describe("TC-B: Resilient JSON Parser Unit Tests", () => {
   });
 
   it("J-004b: Strips markdown code fences", () => {
-    const r = resilientJsonParse("```json
-{"modeUsed":"DETAIL"}
-```");
+    const fenced = "```json\n" + JSON.stringify({ modeUsed: "DETAIL" }) + "\n```";
+    const r = resilientJsonParse(fenced);
     expect(r.modeUsed).toBe("DETAIL");
   });
 
   it("J-004c: Recovers from trailing commas", () => {
-    const r = resilientJsonParse("{"optimizedPrompt":"test",}");
+    const r = resilientJsonParse('{"optimizedPrompt":"test",}');
     expect(r.optimizedPrompt).toBe("test");
   });
 
   it("J-004d: Strips trailing prose after closing brace", () => {
-    const r = resilientJsonParse("{"proTip":"tip"} here is some explanation text after");
+    const r = resilientJsonParse('{"proTip":"tip"} here is some explanation text after');
     expect(r.proTip).toBe("tip");
   });
 
   it("J-004e: Strips leading prose before opening brace", () => {
-    const r = resilientJsonParse("Here is the result: {"modeUsed":"BASIC"}");
+    const r = resilientJsonParse('Here is the result: {"modeUsed":"BASIC"}');
     expect(r.modeUsed).toBe("BASIC");
   });
 
