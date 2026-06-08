@@ -513,9 +513,11 @@ describe("TC-D: Token Engine Unit Tests", () => {
     expect(DAILY_LIMIT).toBe(500000);
   });
 
-  it("D-004d: google.com email bypasses limits", () => {
-    const r = checkAndDeductTokens("uid", "engineer@google.com", 999999);
-    expect(r.allowed).toBe(true);
+  it("D-004d: google.com email does NOT bypass limits (security fix)", async () => {
+    // @google.com blanket bypass was removed — only exact OWNER_EMAIL gets unlimited
+    const r = await checkAndDeductTokens("uid_g_" + Date.now(), "engineer@google.com", 100);
+    expect(r.allowed).toBe(true);          // allowed (has tokens remaining)
+    expect(r.remaining).toBeLessThan(99999999); // but NOT unlimited
   });
 });
 
