@@ -497,14 +497,14 @@ describe("TC-D: API Key Validation Unit Tests", () => {
 
 describe("TC-D: Token Engine Unit Tests", () => {
 
-  it("D-004a: Owner email bypasses limits", () => {
-    const r = checkAndDeductTokens("uid", OWNER_EMAIL, 999999);
+  it("D-004a: Owner email bypasses limits", async () => {
+    const r = await checkAndDeductTokens("uid", OWNER_EMAIL, 999999);
     expect(r.allowed).toBe(true);
     expect(r.remaining).toBe(99999999);
   });
 
-  it("D-004b: New user starts with full daily allocation", () => {
-    const r = checkAndDeductTokens("new_" + Date.now(), "test@example.com", 100);
+  it("D-004b: New user starts with full daily allocation", async () => {
+    const r = await checkAndDeductTokens("new_" + Date.now(), "test@example.com", 100);
     expect(r.allowed).toBe(true);
     expect(r.remaining).toBe(DAILY_LIMIT - 100);
   });
