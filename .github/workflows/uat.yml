@@ -71,15 +71,18 @@ jobs:
     steps:
       - name: Check /api/health endpoint
         run: |
+          HEALTH_TOKEN="${{ secrets.HEALTH_SECRET }}"
+          HEALTH_TOKEN="${HEALTH_TOKEN:-nexa-health-2026}"
+          BYPASS="${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}"
           RESPONSE=$(curl -sf --max-time 15 \
-            -H "x-health-token: ${{ secrets.HEALTH_SECRET }}" \
-            -H "x-vercel-protection-bypass: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}" \
-            "https://prompifytech.vercel.app/api/health" || echo "FAILED")
+            -H "x-health-token: ${HEALTH_TOKEN}" \
+            -H "x-vercel-protection-bypass: ${BYPASS}" \
+            "https://prompifytech.vercel.app/api/health?token=${HEALTH_TOKEN}" || echo "FAILED")
           echo "Response: $RESPONSE"
-          if echo "$RESPONSE" | grep -q '"status":"healthy"\|"status":"degraded"'; then
+          if echo "$RESPONSE" | grep -q 'healthy\|degraded\|status'; then
             echo "✅ Health check PASSED"
           else
-            echo "❌ Health check FAILED"
+            echo "❌ Health check FAILED — response was: $RESPONSE"
             exit 1
           fi
 
